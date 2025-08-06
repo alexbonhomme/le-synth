@@ -60,8 +60,8 @@ void setup()
   envelope1.sustain(1);
   envelope1.release(30);
 
-  mixer1.gain(0, 0.33);
-  mixer1.gain(1, 0.33);
+  mixer1.gain(0, 0.25);
+  mixer1.gain(1, 0.25);
 
   // Set up MIDI callbacks
   usbMIDI.setHandleNoteOn(OnNoteOn);
