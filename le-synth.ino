@@ -1,36 +1,65 @@
 #include <Audio.h>
 #include <Wire.h>
-// #include <SPI.h>
-// #include <SD.h>
-// #include <SerialFlash.h>
 #include <Bounce.h>
+#include <ResponsiveAnalogRead.h>
+
+// ADSR envelope configuration constants
+const int ENVELOPE_ATTACK = 5;      // Attack time in milliseconds
+const int ENVELOPE_DECAY = 0;       // Decay time in milliseconds
+const float ENVELOPE_SUSTAIN = 1.0; // Sustain level (0.0 to 1.0)
+const int ENVELOPE_RELEASE = 30;    // Release time in milliseconds
 
 // GUItool: begin automatically generated code
-AudioSynthWaveform waveform1;  // xy=687,580
-AudioSynthWaveform waveform2;  // xy=688,627
-AudioMixer4 mixer1;            // xy=897,623
-AudioEffectEnvelope envelope1; // xy=1087,622
-AudioOutputI2S i2s1;           // xy=1271,629
+AudioSynthWaveform waveform1;     // xy=687,580
+AudioSynthWaveform waveform2;     // xy=688,627
+AudioSynthWaveform waveform_sub;  // xy=686,673
+AudioFilterStateVariable filter1; // xy=692,703
+AudioMixer4 mixer1;               // xy=897,623
+AudioEffectEnvelope envelope1;    // xy=1087,622
+AudioEffectEnvelope envelope2;    // xy=1087,680
+AudioSynthWaveformDc dc_signal;   // xy=687,680
+AudioOutputI2S i2s1;              // xy=1271,629
 AudioConnection patchCord1(waveform1, 0, mixer1, 0);
 AudioConnection patchCord2(waveform2, 0, mixer1, 1);
-AudioConnection patchCord3(mixer1, envelope1);
-AudioConnection patchCord4(envelope1, 0, i2s1, 0);
+AudioConnection patchCord3(waveform_sub, 0, filter1, 0);
+AudioConnection patchCord4(filter1, 0, mixer1, 2);
+AudioConnection patchCord5(mixer1, envelope1);
+AudioConnection patchCord6(envelope1, 0, i2s1, 0);
+AudioConnection patchCord7(dc_signal, 0, envelope2, 0);
+AudioConnection patchCord8(envelope2, 0, i2s1, 1);
 // GUItool: end automatically generated code
 
 const int BT_1 = 0;
 const int BT_2 = 1;
+const int OCTAVE_SWITCH_1 = 2;
+const int OCTAVE_SWITCH_2 = 3;
 
 Bounce button_1 = Bounce(BT_1, 15);
 Bounce button_2 = Bounce(BT_2, 15);
+Bounce octave_switch_1 = Bounce(OCTAVE_SWITCH_1, 15);
+Bounce octave_switch_2 = Bounce(OCTAVE_SWITCH_2, 15);
 
-float pot_1 = 0.0;
-float pot_2 = 0.0;
-float freq = 0.0;
-float freq_2 = 0.0;
-float amplitude = 0.0;
+ResponsiveAnalogRead pot_1(A0, true);
+ResponsiveAnalogRead pot_2(A1, true);
+ResponsiveAnalogRead pot_3(A2, true);
+
+float octave_divider = 0.0;
+
+// float pot_1 = 0.0;
+// float pot_2 = 0.0;
+// float pot_3 = 0.0;
+
+float freq = 440.0;
+float freq_2 = 440.0;
+float freq_sub = 220.0;
+
+float amplitude = 1.0;
 float amplitude_2 = 0.0;
+float amplitude_sub = 0.0;
 
-int current_waveform = WAVEFORM_SAWTOOTH_REVERSE;
+int current_waveform = WAVEFORM_SAWTOOTH;
+int current_waveform_sub = WAVEFORM_SQUARE;
+
 int current_note = 0;
 int current_velocity = 0;
 
@@ -40,28 +69,50 @@ void setup()
 
   pinMode(BT_1, INPUT_PULLUP);
   pinMode(BT_2, INPUT_PULLUP);
+  pinMode(OCTAVE_SWITCH_1, INPUT_PULLUP);
+  pinMode(OCTAVE_SWITCH_2, INPUT_PULLUP);
+
+  octave_divider = computeOctaveDivider(octave_switch_1.read(), octave_switch_2.read());
+  freq_sub = computeSubFrequency(freq, octave_divider);
 
   // Audio connections require memory to work.  For more
   // detailed information, see the MemoryAndCpuUsage example
-  AudioMemory(10);
+  AudioMemory(16);
 
   waveform1.begin(current_waveform);
   waveform2.begin(current_waveform);
+  waveform_sub.begin(current_waveform_sub);
 
-  waveform1.frequency(440);
-  waveform2.frequency(440);
+  waveform1.frequency(freq);
+  waveform2.frequency(freq_2);
+  waveform_sub.frequency(freq_sub);
 
-  waveform1.amplitude(1);
-  waveform2.amplitude(1);
+  filter1.frequency(freq_sub * 2);
+  filter1.resonance(0.7);
 
-  envelope1.attack(5);
+  waveform1.amplitude(amplitude);
+  waveform2.amplitude(amplitude_2);
+  waveform_sub.amplitude(amplitude_sub);
+
+  envelope1.attack(ENVELOPE_ATTACK);
   envelope1.hold(0);
-  envelope1.decay(0);
-  envelope1.sustain(1);
-  envelope1.release(30);
+  envelope1.decay(ENVELOPE_DECAY);
+  envelope1.sustain(ENVELOPE_SUSTAIN);
+  envelope1.release(ENVELOPE_RELEASE);
 
-  mixer1.gain(0, 0.25);
-  mixer1.gain(1, 0.25);
+  // Configure DC signal for envelope2 (constant voltage source)
+  dc_signal.amplitude(1.0);
+
+  // Configure envelope2 with the same ADSR values as envelope1
+  envelope1.attack(ENVELOPE_ATTACK);
+  envelope1.hold(0);
+  envelope1.decay(ENVELOPE_DECAY);
+  envelope1.sustain(ENVELOPE_SUSTAIN);
+  envelope1.release(ENVELOPE_RELEASE);
+
+  mixer1.gain(0, 0.15);
+  mixer1.gain(1, 0.15);
+  mixer1.gain(2, 0.5);
 
   // Set up MIDI callbacks
   usbMIDI.setHandleNoteOn(OnNoteOn);
@@ -70,40 +121,69 @@ void setup()
 
 void loop()
 {
-  // Read the buttons and knobs, scale knobs to 0-1.0
+  // Handle MIDI messages
+  usbMIDI.read();
+
+  /*
+   * Read the buttons and knobs, scale knobs to 0-1.0
+   */
   button_1.update();
   button_2.update();
 
-  // Frequency
-  pot_1 = (float)analogRead(A0) / 1023.0;
-  pot_2 = (float)analogRead(A1) / 1023.0;
-  // pot_3 = (float)analogRead(A2) / 1023.0;
+  pot_1.update();
+  pot_2.update();
+  pot_3.update();
+
+  if (octave_switch_1.update() || octave_switch_2.update())
+  {
+    octave_divider = computeOctaveDivider(octave_switch_1.read(), octave_switch_2.read());
+    freq_sub = computeSubFrequency(freq, octave_divider);
+
+    AudioNoInterrupts();
+
+    waveform_sub.frequency(freq_sub);
+    filter1.frequency(freq_sub * 2);
+
+    AudioInterrupts();
+  }
 
   // 1v/Oct (0 - 10v)
   // float cv = (float)analogRead(A9) / 102.3;
 
-  updateWaveforms();
+  // Update the frequency of the second oscillator
+  if (pot_1.hasChanged())
+  {
+    freq_2 = computeFrequencyFromNote(current_note, (float)pot_1.getValue() / 1023.0);
 
-  // Button 1 changes the waveform type
+    waveform2.frequency(freq_2);
+  }
+
+  // Update the amplitude of the second oscillator
+  if (pot_2.hasChanged())
+  {
+    amplitude_2 = (float)pot_2.getValue() / 1023.0;
+
+    waveform2.amplitude(amplitude_2);
+  }
+
+  // Update the amplitude of the sub oscillator
+  if (pot_3.hasChanged())
+  {
+    amplitude_sub = ((float)pot_3.getValue() / 1023.0) * 0.5;
+
+    waveform_sub.amplitude(amplitude_sub); // attenuation to avoid clipping in filter
+  }
+
+  // Button 1 changes the waveform type of the main oscillators
   if (button_1.fallingEdge())
   {
     switch (current_waveform)
     {
-    case WAVEFORM_SINE:
-      current_waveform = WAVEFORM_SAWTOOTH_REVERSE;
-      // Serial.println("Sawtooth Reverse");
-      break;
-    case WAVEFORM_SAWTOOTH_REVERSE:
+    case WAVEFORM_SAWTOOTH:
       current_waveform = WAVEFORM_SQUARE;
-      // Serial.println("Square");
       break;
     case WAVEFORM_SQUARE:
-      current_waveform = WAVEFORM_TRIANGLE;
-      // Serial.println("Triangle");
-      break;
-    case WAVEFORM_TRIANGLE:
-      current_waveform = WAVEFORM_SINE;
-      // Serial.println("Sine");
+      current_waveform = WAVEFORM_SAWTOOTH;
       break;
     }
 
@@ -115,50 +195,89 @@ void loop()
     AudioInterrupts();
   }
 
-  // Handle MIDI messages
-  usbMIDI.read();
+  // Button 2 changes the waveform type of the sub oscillator
+  if (button_2.fallingEdge())
+  {
+    switch (current_waveform_sub)
+    {
+    case WAVEFORM_SAWTOOTH:
+      current_waveform_sub = WAVEFORM_SQUARE;
+      break;
+    case WAVEFORM_SQUARE:
+      current_waveform_sub = WAVEFORM_TRIANGLE;
+      break;
+    case WAVEFORM_TRIANGLE:
+      current_waveform_sub = WAVEFORM_SAWTOOTH;
+      break;
+    }
+
+    waveform_sub.begin(current_waveform_sub);
+  }
 }
 
 // MIDI event handlers
 void OnNoteOn(byte channel, byte note, byte velocity)
 {
   current_note = note;
-  current_velocity = velocity;
+  float sustain = (float)velocity / 127.0;
 
-  updateWaveforms();
-
-  // Trigger envelope
-  envelope1.noteOn();
-}
-
-void OnNoteOff(byte channel, byte note, byte velocity)
-{
-  // Release envelope
-  envelope1.noteOff();
-}
-
-/**
- * Update the waveforms based on the current note, pot values, and velocity.
- */
-void updateWaveforms()
-{
   // update main oscillator
   freq = computeFrequencyFromNote(current_note, 0);
-  amplitude = (float)current_velocity / 127.0;
 
   // update other oscillators
-  freq_2 = computeFrequencyFromNote(current_note, pot_1);
-  amplitude_2 = amplitude * pot_2;
+  freq_2 = computeFrequencyFromNote(current_note, (float)pot_1.getValue() / 1023.0);
+
+  // update sub oscillator
+  if (octave_divider > 0.0)
+  {
+    freq_sub = freq / octave_divider;
+  }
 
   AudioNoInterrupts();
 
   waveform1.frequency(freq);
   waveform2.frequency(freq_2);
+  waveform_sub.frequency(freq_sub);
 
-  waveform1.amplitude(amplitude);
-  waveform2.amplitude(amplitude_2);
+  filter1.frequency(freq_sub * 2);
+
+  envelope1.sustain(sustain);
+  envelope2.sustain(sustain);
+
+  envelope1.noteOn();
+  envelope2.noteOn();
 
   AudioInterrupts();
+}
+
+void OnNoteOff(byte channel, byte note, byte velocity)
+{
+  envelope1.noteOff();
+  envelope2.noteOff();
+}
+
+float computeSubFrequency(float freq, float octave_divider)
+{
+  return octave_divider > 0.0 ? freq / octave_divider : 0.0;
+}
+
+/*
+ * Compute the octave divider based on the octave switch inputs.
+ *
+ * The computation is a little bit weird because of the switch schematic.
+ */
+float computeOctaveDivider(int octave_switch_1, int octave_switch_2)
+{
+  if (octave_switch_2 == LOW)
+  {
+    return 0.0;
+  }
+  else if (octave_switch_1 == LOW)
+  {
+    return 4.0;
+  }
+
+  return 2.0;
 }
 
 /**
