@@ -221,7 +221,7 @@ void loop()
   if (pot_attack.hasChanged())
   {
     float pot_normalized = (float)pot_attack.getValue() / 1023.0;
-    attack_time = pot_normalized * 150.0; // 0 to 150ms
+    attack_time = pot_normalized * 148.5 + 1.5; // 1.5 to 150ms
 
     AudioNoInterrupts();
 
