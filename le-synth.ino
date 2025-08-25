@@ -23,10 +23,11 @@ AudioConnection patchCord7(dc_signal, 0, envelope2, 0);
 AudioConnection patchCord8(envelope2, 0, i2s1, 1);
 // GUItool: end automatically generated code
 
-const int BT_1 = 0;
-const int BT_2 = 1;
-const int OCTAVE_SWITCH_1 = 2;
-const int OCTAVE_SWITCH_2 = 3;
+const int BT_1 = 1;
+const int BT_2 = 2;
+const int OCTAVE_SWITCH_1 = 3;
+const int OCTAVE_SWITCH_2 = 4;
+const int ENV_SWITCH = 5;
 
 const float MAIN_MIX_GAIN = 0.1;
 const float SUB_MIX_GAIN = 0.4;
@@ -35,6 +36,7 @@ Bounce button_1 = Bounce(BT_1, 15);
 Bounce button_2 = Bounce(BT_2, 15);
 Bounce octave_switch_1 = Bounce(OCTAVE_SWITCH_1, 15);
 Bounce octave_switch_2 = Bounce(OCTAVE_SWITCH_2, 15);
+Bounce env_switch = Bounce(ENV_SWITCH, 15);
 
 ResponsiveAnalogRead pot_freq_2(A0, true);
 ResponsiveAnalogRead pot_amplitude_2(A1, true);
@@ -68,6 +70,7 @@ void setup()
   pinMode(BT_2, INPUT_PULLUP);
   pinMode(OCTAVE_SWITCH_1, INPUT_PULLUP);
   pinMode(OCTAVE_SWITCH_2, INPUT_PULLUP);
+  pinMode(ENV_SWITCH, INPUT_PULLUP);
 
   // Audio connections require memory to work.  For more
   // detailed information, see the MemoryAndCpuUsage example
@@ -93,6 +96,7 @@ void setup()
   envelope1.decay(0);
   envelope1.sustain(1.0);
   envelope1.release(release_time);
+  envelope1.releaseNoteOn(0);
 
   // Configure DC signal for envelope2 (constant voltage source)
   dc_signal.amplitude(1.0);
@@ -103,6 +107,7 @@ void setup()
   envelope2.decay(0);
   envelope2.sustain(1.0);
   envelope2.release(release_time);
+  envelope2.releaseNoteOn(0);
 
   mixer1.gain(0, MAIN_MIX_GAIN);
   mixer1.gain(1, MAIN_MIX_GAIN);
@@ -129,6 +134,7 @@ void loop()
   pot_attack.update();
   pot_release.update();
 
+  // Set sub oscillator to octave -1, -2 or 0 (disabled)
   if (octave_switch_1.update() || octave_switch_2.update())
   {
     octave_divider = computeOctaveDivider(octave_switch_1.read(), octave_switch_2.read());
@@ -148,6 +154,21 @@ void loop()
       mixer1.gain(2, SUB_MIX_GAIN);
 
       AudioInterrupts();
+    }
+  }
+
+  // Toggle between classic and "exponential" envelope (acid style)
+  if (env_switch.update())
+  {
+    if (env_switch.read() == LOW)
+    {
+      envelope2.sustain(0.0);
+      envelope2.decay(release_time);
+    }
+    else
+    {
+      envelope2.sustain(1.0);
+      envelope2.decay(0);
     }
   }
 
