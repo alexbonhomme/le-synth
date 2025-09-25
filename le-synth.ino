@@ -2,6 +2,10 @@
 #include <Wire.h>
 #include <Bounce.h>
 #include <ResponsiveAnalogRead.h>
+#include <MIDI.h>
+
+// Create and bind the MIDI interface to the default hardware Serial port
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 
 // GUItool: begin automatically generated code
 AudioSynthWaveform waveform1;     // xy=687,580
@@ -23,20 +27,23 @@ AudioConnection patchCord7(dc_signal, 0, envelope2, 0);
 AudioConnection patchCord8(envelope2, 0, i2s1, 1);
 // GUItool: end automatically generated code
 
-const int BT_1 = 1;
+const int MIDI_CHANNEL = 8;
+
+const int BT_1 = 6;
 const int BT_2 = 2;
 const int OCTAVE_SWITCH_1 = 3;
 const int OCTAVE_SWITCH_2 = 4;
-const int ENV_SWITCH = 5;
+const int ENVELOPE_SWITCH = 5;
 
 const float MAIN_MIX_GAIN = 0.1;
-const float SUB_MIX_GAIN = 0.4;
+const float SUB_MIX_GAIN = 0.2;
+const float FILTER_ENV_GAIN = 0.5;
 
 Bounce button_1 = Bounce(BT_1, 15);
 Bounce button_2 = Bounce(BT_2, 15);
 Bounce octave_switch_1 = Bounce(OCTAVE_SWITCH_1, 15);
 Bounce octave_switch_2 = Bounce(OCTAVE_SWITCH_2, 15);
-Bounce env_switch = Bounce(ENV_SWITCH, 15);
+Bounce envelope_switch = Bounce(ENVELOPE_SWITCH, 15);
 
 ResponsiveAnalogRead pot_freq_2(A0, true);
 ResponsiveAnalogRead pot_amplitude_2(A1, true);
@@ -59,22 +66,20 @@ float amplitude_sub = 0.0;
 
 int current_note = 0;
 
-int attack_time = 0;
-int release_time = 0;
+int attack_time = 1;
+int release_time = 10;
 
 void setup()
 {
-  // Serial.begin(9600);
-
   pinMode(BT_1, INPUT_PULLUP);
   pinMode(BT_2, INPUT_PULLUP);
   pinMode(OCTAVE_SWITCH_1, INPUT_PULLUP);
   pinMode(OCTAVE_SWITCH_2, INPUT_PULLUP);
-  pinMode(ENV_SWITCH, INPUT_PULLUP);
+  pinMode(ENVELOPE_SWITCH, INPUT_PULLUP);
 
   // Audio connections require memory to work.  For more
   // detailed information, see the MemoryAndCpuUsage example
-  AudioMemory(16);
+  AudioMemory(20);
 
   waveform1.begin(current_waveform);
   waveform2.begin(current_waveform);
@@ -91,15 +96,16 @@ void setup()
   waveform2.amplitude(amplitude_2);
   waveform_sub.amplitude(amplitude_sub);
 
+  // Configure DC signal for envelope2 (constant voltage source)
+  dc_signal.amplitude(FILTER_ENV_GAIN);
+
+  // Configure envelope1
   envelope1.attack(attack_time);
   envelope1.hold(0);
   envelope1.decay(0);
   envelope1.sustain(1.0);
   envelope1.release(release_time);
   envelope1.releaseNoteOn(0);
-
-  // Configure DC signal for envelope2 (constant voltage source)
-  dc_signal.amplitude(1.0);
 
   // Configure envelope2 with the same ADSR values as envelope1
   envelope2.attack(attack_time);
@@ -113,15 +119,21 @@ void setup()
   mixer1.gain(1, MAIN_MIX_GAIN);
   mixer1.gain(2, SUB_MIX_GAIN);
 
-  // Set up MIDI callbacks
+  // USB MIDI
   usbMIDI.setHandleNoteOn(OnNoteOn);
   usbMIDI.setHandleNoteOff(OnNoteOff);
+
+  // Serial MIDI
+  MIDI.setHandleNoteOn(OnNoteOn);
+  MIDI.setHandleNoteOff(OnNoteOff);
+  MIDI.begin(MIDI_CHANNEL);
 }
 
 void loop()
 {
   // Handle MIDI messages
   usbMIDI.read();
+  MIDI.read();
 
   /*
    * Read the buttons and knobs, scale knobs to 0-1.0
@@ -157,18 +169,25 @@ void loop()
     }
   }
 
-  // Toggle between classic and "exponential" envelope (acid style)
-  if (env_switch.update())
+  if (envelope_switch.update())
   {
-    if (env_switch.read() == LOW)
+    if (envelope_switch.read() == LOW)
     {
-      envelope2.sustain(0.0);
+      envelope1.decay(release_time);
+      envelope1.sustain(0.0);
+      envelope1.release(0);
       envelope2.decay(release_time);
+      envelope2.sustain(0.0);
+      envelope2.release(0);
     }
     else
     {
-      envelope2.sustain(1.0);
+      envelope1.decay(0);
+      envelope1.sustain(1.0);
+      envelope1.release(release_time);
       envelope2.decay(0);
+      envelope2.sustain(1.0);
+      envelope2.release(release_time);
     }
   }
 
@@ -242,7 +261,7 @@ void loop()
   if (pot_attack.hasChanged())
   {
     float pot_normalized = (float)pot_attack.getValue() / 1023.0;
-    attack_time = pot_normalized * 148.5 + 1.5; // 1.5 to 150ms
+    attack_time = pot_normalized * 149 + 1; // 1 to 150ms
 
     AudioNoInterrupts();
 
@@ -255,7 +274,7 @@ void loop()
   if (pot_release.hasChanged())
   {
     float pot_normalized = (float)pot_release.getValue() / 1023.0;
-    release_time = pot_normalized * 598.5 + 1.5; // 1.5 to 600ms
+    release_time = pot_normalized * 598 + 2; // 2 to 600ms
 
     AudioNoInterrupts();
 
@@ -293,7 +312,7 @@ void OnNoteOn(byte channel, byte note, byte velocity)
   }
 
   envelope1.sustain(sustain);
-  envelope2.sustain(sustain);
+  envelope2.sustain(sustain * 0.8);
 
   envelope1.noteOn();
   envelope2.noteOn();
