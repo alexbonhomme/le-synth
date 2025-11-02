@@ -1,8 +1,21 @@
 #include <Audio.h>
-#include <Wire.h>
+#include <MIDI.h>
 #include <Bounce.h>
 #include <ResponsiveAnalogRead.h>
-#include <MIDI.h>
+
+// #define DEBUG
+
+#define MIDI_CHANNEL 8
+
+#define BT_1 2
+#define BT_2 3
+#define OCTAVE_SWITCH_1 4
+#define OCTAVE_SWITCH_2 5
+#define ENVELOPE_SWITCH 6
+
+#define MAIN_MIX_GAIN 0.1
+#define SUB_MIX_GAIN 0.45
+#define FILTER_ENV_GAIN 0.5
 
 // Create and bind the MIDI interface to the default hardware Serial port
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
@@ -27,18 +40,6 @@ AudioConnection patchCord7(dc_signal, 0, envelope2, 0);
 AudioConnection patchCord8(envelope2, 0, i2s1, 1);
 // GUItool: end automatically generated code
 
-const int MIDI_CHANNEL = 8;
-
-const int BT_1 = 6;
-const int BT_2 = 2;
-const int OCTAVE_SWITCH_1 = 3;
-const int OCTAVE_SWITCH_2 = 4;
-const int ENVELOPE_SWITCH = 5;
-
-const float MAIN_MIX_GAIN = 0.1;
-const float SUB_MIX_GAIN = 0.2;
-const float FILTER_ENV_GAIN = 0.5;
-
 Bounce button_1 = Bounce(BT_1, 15);
 Bounce button_2 = Bounce(BT_2, 15);
 Bounce octave_switch_1 = Bounce(OCTAVE_SWITCH_1, 15);
@@ -50,6 +51,7 @@ ResponsiveAnalogRead pot_amplitude_2(A1, true);
 ResponsiveAnalogRead pot_amplitude_sub(A2, true);
 ResponsiveAnalogRead pot_attack(A3, true);
 ResponsiveAnalogRead pot_release(A4, true);
+ResponsiveAnalogRead cv_2(A5, true);
 
 int current_waveform = WAVEFORM_SAWTOOTH_REVERSE;
 int current_waveform_sub = WAVEFORM_SQUARE;
@@ -71,6 +73,11 @@ int release_time = 10;
 
 void setup()
 {
+#ifdef DEBUG
+  Serial.begin(115200);
+#endif
+
+  // Initialize the buttons and switches
   pinMode(BT_1, INPUT_PULLUP);
   pinMode(BT_2, INPUT_PULLUP);
   pinMode(OCTAVE_SWITCH_1, INPUT_PULLUP);
@@ -90,7 +97,7 @@ void setup()
   waveform_sub.frequency(freq_sub);
 
   filter1.frequency(freq_sub * 2);
-  filter1.resonance(0.7);
+  filter1.resonance(0.6);
 
   waveform1.amplitude(amplitude);
   waveform2.amplitude(amplitude_2);
@@ -145,6 +152,16 @@ void loop()
   pot_amplitude_sub.update();
   pot_attack.update();
   pot_release.update();
+  cv_2.update();
+
+#ifdef DEBUG
+  // @todo impl modulation
+  if (cv_2.hasChanged())
+  {
+    Serial.println("CV 2:");
+    Serial.println(cv_2.getValue());
+  }
+#endif
 
   // Set sub oscillator to octave -1, -2 or 0 (disabled)
   if (octave_switch_1.update() || octave_switch_2.update())
@@ -231,6 +248,11 @@ void loop()
       break;
     }
 
+#ifdef DEBUG
+    Serial.println("Osc 1 & 2 waveform:");
+    Serial.println(current_waveform);
+#endif
+
     AudioNoInterrupts();
 
     waveform1.begin(current_waveform);
@@ -254,6 +276,11 @@ void loop()
       current_waveform_sub = WAVEFORM_SAWTOOTH_REVERSE;
       break;
     }
+
+#ifdef DEBUG
+    Serial.println("Sub osc waveform:");
+    Serial.println(current_waveform_sub);
+#endif
 
     waveform_sub.begin(current_waveform_sub);
   }
