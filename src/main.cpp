@@ -1,17 +1,20 @@
+#include <Arduino.h>
 #include <Audio.h>
 #include <MIDI.h>
-#include <Bounce.h>
+#include <Bounce2.h>
 #include <ResponsiveAnalogRead.h>
 
 // #define DEBUG
 
 #define MIDI_CHANNEL 8
 
-#define BT_1 2
-#define BT_2 3
-#define OCTAVE_SWITCH_1 4
-#define OCTAVE_SWITCH_2 5
-#define ENVELOPE_SWITCH 6
+#define WAVEFORM_SWITCH_1_1 2
+#define WAVEFORM_SWITCH_1_2 3
+#define WAVEFORM_SWITCH_2_1 4
+#define WAVEFORM_SWITCH_2_2 5
+#define OCTAVE_SWITCH_1 6
+#define OCTAVE_SWITCH_2 8
+#define ENVELOPE_SWITCH 9
 
 #define MAIN_MIX_GAIN 0.1
 #define SUB_MIX_GAIN 0.45
@@ -35,16 +38,18 @@ AudioConnection patchCord2(waveform2, 0, mixer1, 1);
 AudioConnection patchCord3(waveform_sub, 0, filter1, 0);
 AudioConnection patchCord4(filter1, 0, mixer1, 2);
 AudioConnection patchCord5(mixer1, envelope1);
-AudioConnection patchCord6(envelope1, 0, i2s1, 0);
+AudioConnection patchCord6(envelope1, 0, i2s1, 1);
 AudioConnection patchCord7(dc_signal, 0, envelope2, 0);
-AudioConnection patchCord8(envelope2, 0, i2s1, 1);
+AudioConnection patchCord8(envelope2, 0, i2s1, 0);
 // GUItool: end automatically generated code
 
-Bounce button_1 = Bounce(BT_1, 15);
-Bounce button_2 = Bounce(BT_2, 15);
-Bounce octave_switch_1 = Bounce(OCTAVE_SWITCH_1, 15);
-Bounce octave_switch_2 = Bounce(OCTAVE_SWITCH_2, 15);
-Bounce envelope_switch = Bounce(ENVELOPE_SWITCH, 15);
+Bounce waveform_switch_1_1 = Bounce();
+Bounce waveform_switch_1_2 = Bounce();
+Bounce waveform_switch_2_1 = Bounce();
+Bounce waveform_switch_2_2 = Bounce();
+Bounce octave_switch_1 = Bounce();
+Bounce octave_switch_2 = Bounce();
+Bounce envelope_switch = Bounce();
 
 ResponsiveAnalogRead pot_freq_2(A0, true);
 ResponsiveAnalogRead pot_amplitude_2(A1, true);
@@ -53,8 +58,8 @@ ResponsiveAnalogRead pot_attack(A3, true);
 ResponsiveAnalogRead pot_release(A4, true);
 ResponsiveAnalogRead cv_2(A5, true);
 
-int current_waveform = WAVEFORM_SAWTOOTH_REVERSE;
-int current_waveform_sub = WAVEFORM_SQUARE;
+int current_waveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
+int current_waveform_sub = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
 
 float octave_divider = 0.0;
 
@@ -71,6 +76,14 @@ int current_note = 0;
 int attack_time = 1;
 int release_time = 10;
 
+// Forward declarations
+void OnNoteOn(byte channel, byte note, byte velocity);
+void OnNoteOff(byte channel, byte note, byte velocity);
+float computeSubFrequency(float freq, float octave_divider);
+float computeOctaveDivider(int octave_switch_1, int octave_switch_2);
+float computeFrequencyFromNote(byte note, float pot);
+float computeFrequencyFromCV(float cv, float pot);
+
 void setup()
 {
 #ifdef DEBUG
@@ -78,11 +91,29 @@ void setup()
 #endif
 
   // Initialize the buttons and switches
-  pinMode(BT_1, INPUT_PULLUP);
-  pinMode(BT_2, INPUT_PULLUP);
+  pinMode(WAVEFORM_SWITCH_1_1, INPUT_PULLUP);
+  pinMode(WAVEFORM_SWITCH_1_2, INPUT_PULLUP);
+  pinMode(WAVEFORM_SWITCH_2_1, INPUT_PULLUP);
+  pinMode(WAVEFORM_SWITCH_2_2, INPUT_PULLUP);
   pinMode(OCTAVE_SWITCH_1, INPUT_PULLUP);
   pinMode(OCTAVE_SWITCH_2, INPUT_PULLUP);
   pinMode(ENVELOPE_SWITCH, INPUT_PULLUP);
+
+  // Initialize Bounce objects
+  waveform_switch_1_1.attach(WAVEFORM_SWITCH_1_1);
+  waveform_switch_1_1.interval(15);
+  waveform_switch_1_2.attach(WAVEFORM_SWITCH_1_2);
+  waveform_switch_1_2.interval(15);
+  waveform_switch_2_1.attach(WAVEFORM_SWITCH_2_1);
+  waveform_switch_2_1.interval(15);
+  waveform_switch_2_2.attach(WAVEFORM_SWITCH_2_2);
+  waveform_switch_2_2.interval(15);
+  octave_switch_1.attach(OCTAVE_SWITCH_1);
+  octave_switch_1.interval(15);
+  octave_switch_2.attach(OCTAVE_SWITCH_2);
+  octave_switch_2.interval(15);
+  envelope_switch.attach(ENVELOPE_SWITCH);
+  envelope_switch.interval(15);
 
   // Audio connections require memory to work.  For more
   // detailed information, see the MemoryAndCpuUsage example
@@ -145,8 +176,10 @@ void loop()
   /*
    * Read the buttons and knobs, scale knobs to 0-1.0
    */
-  button_1.update();
-  button_2.update();
+  waveform_switch_1_1.update();
+  waveform_switch_1_2.update();
+  waveform_switch_2_1.update();
+  waveform_switch_2_2.update();
   pot_freq_2.update();
   pot_amplitude_2.update();
   pot_amplitude_sub.update();
@@ -155,7 +188,7 @@ void loop()
   cv_2.update();
 
 #ifdef DEBUG
-  // @todo impl modulation
+  // @todo impl osc 2 frequency modulation
   if (cv_2.hasChanged())
   {
     Serial.println("CV 2:");
@@ -236,16 +269,19 @@ void loop()
   }
 
   // Button 1 changes the waveform type of the main oscillators
-  if (button_1.fallingEdge())
+  if (waveform_switch_1_1.update() || waveform_switch_1_2.update())
   {
-    switch (current_waveform)
+    if (waveform_switch_1_1.read() == LOW)
     {
-    case WAVEFORM_SAWTOOTH_REVERSE:
-      current_waveform = WAVEFORM_SQUARE;
-      break;
-    case WAVEFORM_SQUARE:
-      current_waveform = WAVEFORM_SAWTOOTH_REVERSE;
-      break;
+      current_waveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
+    }
+    else if (waveform_switch_1_2.read() == LOW)
+    {
+      current_waveform = WAVEFORM_BANDLIMIT_SQUARE;
+    }
+    else
+    {
+      current_waveform = WAVEFORM_TRIANGLE;
     }
 
 #ifdef DEBUG
@@ -262,19 +298,19 @@ void loop()
   }
 
   // Button 2 changes the waveform type of the sub oscillator
-  if (button_2.fallingEdge())
+  if (waveform_switch_2_1.update() || waveform_switch_2_2.update())
   {
-    switch (current_waveform_sub)
+    if (waveform_switch_2_1.read() == LOW)
     {
-    case WAVEFORM_SAWTOOTH_REVERSE:
-      current_waveform_sub = WAVEFORM_SQUARE;
-      break;
-    case WAVEFORM_SQUARE:
+      current_waveform_sub = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
+    }
+    else if (waveform_switch_2_2.read() == LOW)
+    {
+      current_waveform_sub = WAVEFORM_BANDLIMIT_SQUARE;
+    }
+    else
+    {
       current_waveform_sub = WAVEFORM_TRIANGLE;
-      break;
-    case WAVEFORM_TRIANGLE:
-      current_waveform_sub = WAVEFORM_SAWTOOTH_REVERSE;
-      break;
     }
 
 #ifdef DEBUG
