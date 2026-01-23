@@ -2,7 +2,7 @@
 #include <MIDI.h>
 #include <Bounce2.h>
 #include <ResponsiveAnalogRead.h>
-#include "Engine.h"
+#include "engine/Synth.h"
 
 // #define DEBUG
 
