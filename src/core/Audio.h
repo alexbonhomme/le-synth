@@ -1,9 +1,10 @@
-#pragma once
+#ifndef AUTOSAVE_AUDIO_H
+#define AUTOSAVE_AUDIO_H
 
 #include <Arduino.h>
 #include <Audio.h>
 
-namespace Engine {
+namespace Autosave {
 
 namespace defaults {
 static constexpr float main_mix_gain = 0.1f;
@@ -11,14 +12,13 @@ static constexpr float sub_mix_gain = 0.45f;
 static constexpr float filter_env_gain = 0.5f;
 } // namespace defaults
 
-class Synth {
+class Audio {
 public:
-  Synth();
+  Audio();
 
   void begin();
-  void noteOn(byte note, byte velocity, float osc2_pot);
+  void noteOn(byte note, byte velocity, float detune);
   void noteOff();
-  void updateOctaveDivider(float octave_divider);
   void updateEnvelopeMode(bool percussive_mode);
   void updateOsc2Frequency(float frequency);
   void updateOsc2Amplitude(float amplitude);
@@ -71,4 +71,6 @@ private:
   static float computeFrequencyFromCV(float cv, float pot);
 };
 
-} // namespace Engine
+} // namespace Autosave
+
+#endif

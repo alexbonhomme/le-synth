@@ -1,17 +1,17 @@
-#include "Synth.h"
+#include "Audio.h"
 
 #include <cmath>
 
-namespace Engine {
+namespace Autosave {
 
-Synth::Synth()
+Audio::Audio()
     : patchCord1(waveform1, 0, mixer1, 0), patchCord2(waveform2, 0, mixer1, 1),
       patchCord3(waveform_sub, 0, filter1, 0),
       patchCord4(filter1, 0, mixer1, 2), patchCord5(mixer1, envelope1),
       patchCord6(envelope1, 0, i2s1, 1), patchCord7(dc_signal, 0, envelope2, 0),
       patchCord8(envelope2, 0, i2s1, 0) {}
 
-void Synth::begin() {
+void Audio::begin() {
   // Audio connections require memory to work. For more
   // detailed information, see the MemoryAndCpuUsage example
   AudioMemory(20);
@@ -55,7 +55,7 @@ void Synth::begin() {
   mixer1.gain(2, defaults::sub_mix_gain);
 }
 
-void Synth::noteOn(byte note, byte velocity, float osc2_pot) {
+void Audio::noteOn(byte note, byte velocity, float detune) {
   current_note = note;
   float sustain = (float)velocity / 127.0;
 
@@ -63,7 +63,7 @@ void Synth::noteOn(byte note, byte velocity, float osc2_pot) {
   freq = computeFrequencyFromNote(current_note, 0);
 
   // update other oscillators
-  freq_2 = computeFrequencyFromNote(current_note, osc2_pot);
+  freq_2 = computeFrequencyFromNote(current_note, detune);
 
   AudioNoInterrupts();
 
@@ -71,12 +71,10 @@ void Synth::noteOn(byte note, byte velocity, float osc2_pot) {
   waveform2.frequency(freq_2);
 
   // update sub oscillator
-  if (octave_divider > 0.0) {
-    freq_sub = computeSubFrequency(freq, octave_divider);
+  freq_sub = computeSubFrequency(freq, 2.0);
 
-    waveform_sub.frequency(freq_sub);
-    filter1.frequency(freq_sub * 2);
-  }
+  waveform_sub.frequency(freq_sub);
+  filter1.frequency(freq_sub * 2);
 
   envelope1.sustain(sustain);
   envelope2.sustain(sustain * 0.8);
@@ -87,29 +85,12 @@ void Synth::noteOn(byte note, byte velocity, float osc2_pot) {
   AudioInterrupts();
 }
 
-void Synth::noteOff() {
+void Audio::noteOff() {
   envelope1.noteOff();
   envelope2.noteOff();
 }
 
-void Synth::updateOctaveDivider(float octave_divider) {
-  if (octave_divider == 0.0) {
-    mixer1.gain(2, 0.0);
-    return;
-  }
-
-  freq_sub = computeSubFrequency(freq, octave_divider);
-
-  AudioNoInterrupts();
-
-  waveform_sub.frequency(freq_sub);
-  filter1.frequency(freq_sub * 2);
-  mixer1.gain(2, defaults::sub_mix_gain);
-
-  AudioInterrupts();
-}
-
-void Synth::updateEnvelopeMode(bool percussive_mode) {
+void Audio::updateEnvelopeMode(bool percussive_mode) {
   if (percussive_mode) {
     envelope1.decay(release_time);
     envelope1.sustain(0.0);
@@ -127,21 +108,21 @@ void Synth::updateEnvelopeMode(bool percussive_mode) {
   }
 }
 
-void Synth::updateOsc2Frequency(float frequency) {
+void Audio::updateOsc2Frequency(float frequency) {
   freq_2 = computeFrequencyFromNote(current_note, frequency);
   waveform2.frequency(freq_2);
 }
 
-void Synth::updateOsc2Amplitude(float amplitude) {
+void Audio::updateOsc2Amplitude(float amplitude) {
   waveform2.amplitude(amplitude);
 }
 
-void Synth::updateSubAmplitude(float amplitude) {
+void Audio::updateSubAmplitude(float amplitude) {
   amplitude_sub = amplitude * 0.5; // attenuation to avoid clipping in filter
   waveform_sub.amplitude(amplitude_sub);
 }
 
-void Synth::updateWaveform(int waveform) {
+void Audio::updateWaveform(int waveform) {
 #ifdef DEBUG
   Serial.println("Osc 1 & 2 waveform:");
   Serial.println(waveform);
@@ -156,7 +137,7 @@ void Synth::updateWaveform(int waveform) {
   AudioInterrupts();
 }
 
-void Synth::updateAttack(float attack) {
+void Audio::updateAttack(float attack) {
   attack_time = attack * 149 + 1; // 1 to 150ms
 
   AudioNoInterrupts();
@@ -167,7 +148,7 @@ void Synth::updateAttack(float attack) {
   AudioInterrupts();
 }
 
-void Synth::updateRelease(float release) {
+void Audio::updateRelease(float release) {
   release_time = release * 598 + 2; // 2 to 600ms
 
   AudioNoInterrupts();
@@ -178,7 +159,7 @@ void Synth::updateRelease(float release) {
   AudioInterrupts();
 }
 
-float Synth::computeSubFrequency(float freq, float octave_divider) {
+float Audio::computeSubFrequency(float freq, float octave_divider) {
   return octave_divider > 0.0 ? freq / octave_divider : 0.0;
 }
 
@@ -189,7 +170,7 @@ float Synth::computeSubFrequency(float freq, float octave_divider) {
  *
  * @see https://vcvrack.com/manual/VoltageStandards#Pitch-and-Frequencies
  */
-float Synth::computeFrequencyFromNote(byte note, float mod) {
+float Audio::computeFrequencyFromNote(byte note, float mod) {
   float offset = mod * 16.0 - 8.0; // -8 to 8
   float note_offset = note + offset;
 
@@ -202,7 +183,7 @@ float Synth::computeFrequencyFromNote(byte note, float mod) {
  *
  * The mod input is should be from 0 to 1, and the cv input from 0 to 10.
  */
-float Synth::computeFrequencyFromCV(float cv, float mod) {
+float Audio::computeFrequencyFromCV(float cv, float mod) {
   float offset = mod * 2.0 - 1.0; // -1 to 1
   float cv_offset = cv + offset;
 
@@ -215,4 +196,4 @@ float Synth::computeFrequencyFromCV(float cv, float mod) {
   return 32.7032 * pow(2, cv_offset); // f0 = C0 = 32.7032
 }
 
-} // namespace Engine
+} // namespace Autosave
