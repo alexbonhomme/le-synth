@@ -21,6 +21,8 @@ public:
 };
 
 class MonoSynthState : public State {
+private:
+  float detune_ = 0.0f;
 public:
   void noteOn(byte note, byte velocity) override;
   void noteOff(byte note, byte velocity) override;

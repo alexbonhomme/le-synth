@@ -61,8 +61,7 @@ void State::process() {
 }
 
 void MonoSynthState::noteOn(byte note, byte velocity) {
-  synth_->audio->noteOn(note, velocity,
-                        synth_->hardware->read(hardware_controls::POT_1));
+  synth_->audio->noteOn(note, velocity, detune_);
 }
 
 void MonoSynthState::noteOff(byte note, byte velocity) {
@@ -111,9 +110,10 @@ void MonoSynthState::process() {
     // Serial.println("Updating osc 2 frequency: " +
     // String(synth_->hardware->read(hardware_type::POT, controls::pot_1)));
     // #endif
+    detune_ = synth_->hardware->read(hardware_controls::POT_1);
 
     synth_->audio->updateOsc2Frequency(
-        synth_->hardware->read(hardware_controls::POT_1));
+        detune_);
   }
 
   // Update the amplitude of the second oscillator
