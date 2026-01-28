@@ -8,6 +8,7 @@ namespace Autosave {
 
 namespace defaults {
 static constexpr byte bounce_interval = 100;
+static constexpr float snap_multiplier = 0.001f;
 
 static constexpr byte sw_1_1_pin = 2;
 static constexpr byte sw_1_2_pin = 3;
@@ -22,24 +23,33 @@ static constexpr byte pot_2_pin = A1;
 static constexpr byte pot_3_pin = A2;
 static constexpr byte pot_attack_pin = A3;
 static constexpr byte pot_release_pin = A4;
+static constexpr byte cv_pin = A5;
 } // namespace defaults
 
-namespace controls {
-static constexpr byte sw_mode = 0;
-static constexpr byte sw_1 = 1;
-static constexpr byte sw_2 = 2;
-static constexpr byte sw_3 = 3;
+enum hardware_controls {
+  SWITCH_MODE = 0,
+  SWITCH_1 = 1,
+  SWITCH_2 = 2,
+  SWITCH_3 = 3,
+  POT_1 = 4,
+  POT_2 = 5,
+  POT_3 = 6,
+  POT_ATTACK = 7,
+  POT_RELEASE = 8,
+  CV = 9
+};
 
-static constexpr byte pot_1 = 0;
-static constexpr byte pot_2 = 1;
-static constexpr byte pot_3 = 2;
-static constexpr byte pot_attack = 3;
-static constexpr byte pot_release = 4;
-} // namespace controls
+class HardwareControl {
+public:
+  virtual ~HardwareControl() {}
 
-enum hardware_type { SWITCH, POT, CV };
+  virtual void begin(byte pin) = 0;
+  virtual void update() = 0;
+  virtual bool changed() = 0;
+  virtual float read() = 0;
+};
 
-class Switch {
+class SwitchControl : public HardwareControl {
 private:
   Bounce bounce[2];
   bool has_two_pins = false;
@@ -71,36 +81,48 @@ public:
     return bounce[0].changed() || (has_two_pins && bounce[1].changed());
   }
 
-  byte read() {
+  float read() {
     if (has_two_pins) {
       if (bounce[0].read() == LOW) {
-        return 2;
+        return 2.0f;
       }
 
       if (bounce[1].read() == LOW) {
-        return 0;
+        return 0.0f;
       }
 
-      return 1;
+      return 1.0f;
     }
 
-    return bounce[0].read() == LOW ? 0 : 1;
+    return bounce[0].read() == LOW ? 0.0f : 1.0f;
   }
+};
+
+class AnalogControl : public HardwareControl {
+private:
+  ResponsiveAnalogRead pot;
+
+public:
+  void begin(byte pin) { pot.begin(pin, true, defaults::snap_multiplier); }
+
+  void update() { pot.update(); }
+
+  bool changed() { return pot.hasChanged(); }
+
+  float read() { return pot.getValue() / 1023.0f; }
 };
 
 class Hardware {
 private:
-  Switch switches[4];
-  ResponsiveAnalogRead pots[5];
-  ResponsiveAnalogRead cv; // CV input for modulation
+  HardwareControl *controls[10];
 
 public:
   Hardware();
 
   void begin();
   void update();
-  bool changed(hardware_type type, byte index);
-  float read(hardware_type type, byte index);
+  bool changed(hardware_controls control);
+  float read(hardware_controls control);
 };
 
 } // namespace Autosave

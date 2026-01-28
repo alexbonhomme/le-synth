@@ -3,27 +3,15 @@
 
 namespace Autosave {
 
-void MonoSynthState::noteOn(byte note, byte velocity) {
-  synth_->audio->noteOn(
-      note, velocity,
-      synth_->hardware->read(hardware_type::POT, controls::pot_1));
-}
-
-void MonoSynthState::noteOff(byte note, byte velocity) {
-  synth_->audio->noteOff();
-}
-
-void MonoSynthState::process() {
-
-  if (synth_->hardware->changed(hardware_type::SWITCH, controls::sw_mode)) {
+void State::process() {
+  // Handle mode switch
+  if (synth_->hardware->changed(hardware_controls::SWITCH_MODE)) {
 #ifdef DEBUG
-    Serial.println("Updating mode: " +
-                   String(synth_->hardware->read(hardware_type::SWITCH,
-                                                 controls::sw_mode)));
+    Serial.println("Updating mode: " + String(synth_->hardware->read(
+                                           hardware_controls::SWITCH_MODE)));
 #endif
 
-    byte mode = (byte)synth_->hardware->read(
-        hardware_type::SWITCH, controls::sw_mode);
+    byte mode = (byte)synth_->hardware->read(hardware_controls::SWITCH_MODE);
 
     switch (mode) {
     case 0:
@@ -49,17 +37,49 @@ void MonoSynthState::process() {
     }
   }
 
+  // Handle attack
+  if (synth_->hardware->changed(hardware_controls::POT_ATTACK)) {
+    // #ifdef DEBUG
+    // Serial.println("Updating attack: " +
+    // String(synth_->hardware->read(hardware_type::POT,
+    // controls::pot_attack))); #endif
+
+    synth_->audio->updateAttack(
+        synth_->hardware->read(hardware_controls::POT_ATTACK));
+  }
+
+  // Handle decay/release
+  if (synth_->hardware->changed(hardware_controls::POT_RELEASE)) {
+    // #ifdef DEBUG
+    // Serial.println("Updating release: " +
+    // String(synth_->hardware->read(hardware_type::POT,
+    // controls::pot_release))); #endif
+
+    synth_->audio->updateRelease(
+        synth_->hardware->read(hardware_controls::POT_RELEASE));
+  }
+}
+
+void MonoSynthState::noteOn(byte note, byte velocity) {
+  synth_->audio->noteOn(note, velocity,
+                        synth_->hardware->read(hardware_controls::POT_1));
+}
+
+void MonoSynthState::noteOff(byte note, byte velocity) {
+  synth_->audio->noteOff();
+}
+
+void MonoSynthState::process() {
+  State::process();
+
   // Button 1 changes the waveform type of the main oscillators
-  if (synth_->hardware->changed(hardware_type::SWITCH, controls::sw_1)) {
+  if (synth_->hardware->changed(hardware_controls::SWITCH_1)) {
 #ifdef DEBUG
-    Serial.println(
-        "Updating waveform: " +
-        String(synth_->hardware->read(hardware_type::SWITCH, controls::sw_1)));
+    Serial.println("Updating waveform: " +
+                   String(synth_->hardware->read(hardware_controls::SWITCH_1)));
 #endif
 
-    byte waveform = (byte)synth_->hardware->read(
-        hardware_type::SWITCH, controls::sw_1);
-
+    byte waveform = (byte)synth_->hardware->read(hardware_controls::SWITCH_1);
     switch (waveform) {
     case 0:
       synth_->audio->updateWaveform(WAVEFORM_TRIANGLE);
@@ -86,56 +106,36 @@ void MonoSynthState::process() {
   // }
 
   // Update the frequency of the second oscillator
-  if (synth_->hardware->changed(hardware_type::POT, controls::pot_1)) {
+  if (synth_->hardware->changed(hardware_controls::POT_1)) {
     // #ifdef DEBUG
     // Serial.println("Updating osc 2 frequency: " +
     // String(synth_->hardware->read(hardware_type::POT, controls::pot_1)));
     // #endif
 
     synth_->audio->updateOsc2Frequency(
-        synth_->hardware->read(hardware_type::POT, controls::pot_1));
+        synth_->hardware->read(hardware_controls::POT_1));
   }
 
   // Update the amplitude of the second oscillator
-  if (synth_->hardware->changed(hardware_type::POT, controls::pot_2)) {
+  if (synth_->hardware->changed(hardware_controls::POT_2)) {
     // #ifdef DEBUG
     // Serial.println("Updating osc 2 amplitude: " +
     // String(synth_->hardware->read(hardware_type::POT, controls::pot_2)));
     // #endif
 
     synth_->audio->updateOsc2Amplitude(
-        synth_->hardware->read(hardware_type::POT, controls::pot_2));
+        synth_->hardware->read(hardware_controls::POT_2));
   }
 
   // Update the amplitude of the sub oscillator
-  if (synth_->hardware->changed(hardware_type::POT, controls::pot_3)) {
+  if (synth_->hardware->changed(hardware_controls::POT_3)) {
     // #ifdef DEBUG
     // Serial.println("Updating sub amplitude: " +
     // String(synth_->hardware->read(hardware_type::POT, controls::pot_3)));
     // #endif
 
     synth_->audio->updateSubAmplitude(
-        synth_->hardware->read(hardware_type::POT, controls::pot_3));
-  }
-
-  if (synth_->hardware->changed(hardware_type::POT, controls::pot_attack)) {
-    // #ifdef DEBUG
-    // Serial.println("Updating attack: " +
-    // String(synth_->hardware->read(hardware_type::POT,
-    // controls::pot_attack))); #endif
-
-    synth_->audio->updateAttack(
-        synth_->hardware->read(hardware_type::POT, controls::pot_attack));
-  }
-
-  if (synth_->hardware->changed(hardware_type::POT, controls::pot_release)) {
-    // #ifdef DEBUG
-    // Serial.println("Updating release: " +
-    // String(synth_->hardware->read(hardware_type::POT,
-    // controls::pot_release))); #endif
-
-    synth_->audio->updateRelease(
-        synth_->hardware->read(hardware_type::POT, controls::pot_release));
+        synth_->hardware->read(hardware_controls::POT_3));
   }
 }
 
