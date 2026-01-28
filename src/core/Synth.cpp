@@ -20,6 +20,7 @@ void Synth::begin() {
   while (!Serial) {
     delay(100);
   }
+  
   Serial.println("Serial initialized");
 #endif
 

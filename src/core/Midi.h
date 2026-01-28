@@ -14,7 +14,7 @@ public:
                                         byte velocity));
   void setHandleNoteOff(void (*callback)(byte channel, byte note,
                                          byte velocity));
-  void begin(unsigned char channel);
+  void begin(byte channel);
   void read();
 };
 

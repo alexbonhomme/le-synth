@@ -22,7 +22,7 @@ void MonoSynthState::process() {
                                                  controls::sw_mode)));
 #endif
 
-    unsigned char mode = (unsigned char)synth_->hardware->read(
+    byte mode = (byte)synth_->hardware->read(
         hardware_type::SWITCH, controls::sw_mode);
 
     switch (mode) {
@@ -57,7 +57,7 @@ void MonoSynthState::process() {
         String(synth_->hardware->read(hardware_type::SWITCH, controls::sw_1)));
 #endif
 
-    unsigned char waveform = (unsigned char)synth_->hardware->read(
+    byte waveform = (byte)synth_->hardware->read(
         hardware_type::SWITCH, controls::sw_1);
 
     switch (waveform) {

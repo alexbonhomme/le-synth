@@ -21,7 +21,7 @@ void Midi::setHandleNoteOff(void (*callback)(byte channel, byte note,
   MIDI.setHandleNoteOff(callback);
 }
 
-void Midi::begin(unsigned char channel) {
+void Midi::begin(byte channel) {
   MIDI.begin(channel);
 }
 

@@ -8,7 +8,7 @@
 
 namespace Autosave {
 namespace defaults {
-static constexpr unsigned char midi_channel = 8;
+static constexpr byte midi_channel = 8;
 } // namespace defaults
 
 class Synth {

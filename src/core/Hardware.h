@@ -7,34 +7,34 @@
 namespace Autosave {
 
 namespace defaults {
-static constexpr unsigned char bounce_interval = 100;
+static constexpr byte bounce_interval = 100;
 
-static constexpr unsigned char sw_1_1_pin = 2;
-static constexpr unsigned char sw_1_2_pin = 3;
-static constexpr unsigned char sw_2_1_pin = 4;
-static constexpr unsigned char sw_2_2_pin = 5;
-static constexpr unsigned char sw_3_1_pin = 6;
-static constexpr unsigned char sw_3_2_pin = 8;
-static constexpr unsigned char sw_4_pin = 9;
+static constexpr byte sw_1_1_pin = 2;
+static constexpr byte sw_1_2_pin = 3;
+static constexpr byte sw_2_1_pin = 4;
+static constexpr byte sw_2_2_pin = 5;
+static constexpr byte sw_3_1_pin = 6;
+static constexpr byte sw_3_2_pin = 8;
+static constexpr byte sw_4_pin = 9;
 
-static constexpr unsigned char pot_1_pin = A0;
-static constexpr unsigned char pot_2_pin = A1;
-static constexpr unsigned char pot_3_pin = A2;
-static constexpr unsigned char pot_attack_pin = A3;
-static constexpr unsigned char pot_release_pin = A4;
+static constexpr byte pot_1_pin = A0;
+static constexpr byte pot_2_pin = A1;
+static constexpr byte pot_3_pin = A2;
+static constexpr byte pot_attack_pin = A3;
+static constexpr byte pot_release_pin = A4;
 } // namespace defaults
 
 namespace controls {
-static constexpr unsigned char sw_mode = 0;
-static constexpr unsigned char sw_1 = 1;
-static constexpr unsigned char sw_2 = 2;
-static constexpr unsigned char sw_3 = 3;
+static constexpr byte sw_mode = 0;
+static constexpr byte sw_1 = 1;
+static constexpr byte sw_2 = 2;
+static constexpr byte sw_3 = 3;
 
-static constexpr unsigned char pot_1 = 0;
-static constexpr unsigned char pot_2 = 1;
-static constexpr unsigned char pot_3 = 2;
-static constexpr unsigned char pot_attack = 3;
-static constexpr unsigned char pot_release = 4;
+static constexpr byte pot_1 = 0;
+static constexpr byte pot_2 = 1;
+static constexpr byte pot_3 = 2;
+static constexpr byte pot_attack = 3;
+static constexpr byte pot_release = 4;
 } // namespace controls
 
 enum hardware_type { SWITCH, POT, CV };
@@ -44,25 +44,13 @@ private:
   Bounce bounce[2];
   bool has_two_pins = false;
 
-  unsigned char computeSwitchState(bool state_1, bool state_2) {
-    if (state_2 == LOW) {
-      return 0;
-    }
-
-    if (state_1 == LOW) {
-      return 2;
-    }
-
-    return 1;
-  }
-
 public:
-  void begin(unsigned char pin) {
+  void begin(byte pin) {
     bounce[0].attach(pin, INPUT_PULLUP);
     bounce[0].interval(defaults::bounce_interval);
   }
 
-  void begin(unsigned char pin_1, unsigned char pin_2) {
+  void begin(byte pin_1, byte pin_2) {
     has_two_pins = true;
 
     bounce[0].attach(pin_1, INPUT_PULLUP);
@@ -83,12 +71,20 @@ public:
     return bounce[0].changed() || (has_two_pins && bounce[1].changed());
   }
 
-  unsigned char read() {
+  byte read() {
     if (has_two_pins) {
-      return computeSwitchState(bounce[0].read(), bounce[1].read());
+      if (bounce[0].read() == LOW) {
+        return 2;
+      }
+
+      if (bounce[1].read() == LOW) {
+        return 0;
+      }
+
+      return 1;
     }
 
-    return bounce[0].read() ? 1 : 0;
+    return bounce[0].read() == LOW ? 0 : 1;
   }
 };
 
@@ -103,8 +99,8 @@ public:
 
   void begin();
   void update();
-  bool changed(hardware_type type, unsigned char index);
-  float read(hardware_type type, unsigned char index);
+  bool changed(hardware_type type, byte index);
+  float read(hardware_type type, byte index);
 };
 
 } // namespace Autosave

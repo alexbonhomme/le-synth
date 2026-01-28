@@ -20,11 +20,11 @@ void Hardware::begin() {
 }
 
 void Hardware::update() {
-  for (unsigned int i = 0; i < sizeof(pots) / sizeof(pots[0]); i++) {
+  for (byte i = 0; i < sizeof(pots) / sizeof(pots[0]); i++) {
     pots[i].update();
   }
 
-  for (unsigned int i = 0; i < sizeof(switches) / sizeof(switches[0]); i++) {
+  for (byte i = 0; i < sizeof(switches) / sizeof(switches[0]); i++) {
     switches[i].update();
   }
 
@@ -38,36 +38,30 @@ void Hardware::update() {
 #endif
 }
 
-bool Hardware::changed(hardware_type type, unsigned char index) {
-  if (type == SWITCH) {
+bool Hardware::changed(hardware_type type, byte index) {
+  switch (type) {
+  case SWITCH:
     return switches[index].changed();
-  }
-
-  if (type == POT) {
+  case POT:
     return pots[index].hasChanged();
-  }
-
-  if (type == CV) {
+  case CV:
     return cv.hasChanged();
+  default:
+    return false;
   }
-
-  return false;
 }
 
-float Hardware::read(hardware_type type, unsigned char index) {
-  if (type == SWITCH) {
+float Hardware::read(hardware_type type, byte index) {
+  switch (type) {
+  case SWITCH:
     return (float)switches[index].read();
-  }
-
-  if (type == POT) {
+  case POT:
     return (float)pots[index].getValue() / 1023.0f;
-  }
-
-  if (type == CV) {
+  case CV:
     return (float)cv.getValue() / 1023.0f;
+  default:
+    return 0.0f;
   }
-
-  return 0.0f;
 }
 
 } // namespace Autosave
