@@ -5,12 +5,8 @@
 
 #include "core/Synth.h"
 
-// #define DEBUG
-
 Autosave::Synth synth;
 
-void setup() {
-  synth.begin();
-}
+void setup() { synth.begin(); }
 
 void loop() { synth.process(); }

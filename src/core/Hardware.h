@@ -7,7 +7,7 @@
 namespace Autosave {
 
 namespace defaults {
-static constexpr unsigned char bounce_interval = 15;
+static constexpr unsigned char bounce_interval = 100;
 
 static constexpr unsigned char sw_1_1_pin = 2;
 static constexpr unsigned char sw_1_2_pin = 3;

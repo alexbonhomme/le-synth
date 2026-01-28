@@ -17,6 +17,10 @@ void Synth::begin() {
 
 #ifdef DEBUG
   Serial.begin(115200);
+  while (!Serial) {
+    delay(100);
+  }
+  Serial.println("Serial initialized");
 #endif
 
   hardware->begin();
@@ -27,7 +31,26 @@ void Synth::begin() {
   midi->begin(defaults::midi_channel);
 }
 
-void Synth::process() { state_->process(); }
+void Synth::process() {
+  midi->read();
+  hardware->update();
+  state_->process();
+
+// #ifdef DEBUG
+//   Serial.print("Processor: ");
+//   Serial.print(AudioProcessorUsage());
+//   Serial.print(", ");
+//   Serial.print(AudioProcessorUsageMax());
+//   Serial.print("(max)");
+//   Serial.print("    ");
+//   Serial.print("Memory: ");
+//   Serial.print(AudioMemoryUsage());
+//   Serial.print(", ");
+//   Serial.print(AudioMemoryUsageMax());
+//   Serial.print("(max)");
+//   Serial.println();
+// #endif
+}
 
 void Synth::changeState(State *state) {
   if (state_ != nullptr) {

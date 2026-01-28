@@ -8,7 +8,7 @@ namespace Autosave {
 
 namespace defaults {
 static constexpr float main_mix_gain = 0.1f;
-static constexpr float sub_mix_gain = 0.45f;
+static constexpr float sub_mix_gain = 0.35f;
 static constexpr float filter_env_gain = 0.5f;
 } // namespace defaults
 
