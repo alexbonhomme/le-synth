@@ -24,6 +24,21 @@ static constexpr unsigned char pot_attack_pin = A3;
 static constexpr unsigned char pot_release_pin = A4;
 } // namespace defaults
 
+namespace controls {
+static constexpr unsigned char sw_mode = 0;
+static constexpr unsigned char sw_1 = 1;
+static constexpr unsigned char sw_2 = 2;
+static constexpr unsigned char sw_3 = 3;
+
+static constexpr unsigned char pot_1 = 0;
+static constexpr unsigned char pot_2 = 1;
+static constexpr unsigned char pot_3 = 2;
+static constexpr unsigned char pot_attack = 3;
+static constexpr unsigned char pot_release = 4;
+} // namespace controls
+
+enum hardware_type { SWITCH, POT, CV };
+
 class Switch {
 private:
   Bounce bounce[2];
@@ -77,12 +92,6 @@ public:
   }
 };
 
-enum hardware_type {
-  SWITCH,
-  POT,
-  CV
-};
-
 class Hardware {
 private:
   Switch switches[4];
@@ -94,8 +103,8 @@ public:
 
   void begin();
   void update();
-  bool changed(hardware_type type, int index);
-  unsigned char read(hardware_type type, int index);
+  bool changed(hardware_type type, unsigned char index);
+  float read(hardware_type type, unsigned char index);
 };
 
 } // namespace Autosave

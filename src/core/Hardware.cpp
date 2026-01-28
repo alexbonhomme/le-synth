@@ -6,17 +6,17 @@ Hardware::Hardware() {}
 
 void Hardware::begin() {
   // Initialize switches
-  switches[0].begin(defaults::sw_1_1_pin, defaults::sw_1_2_pin);
-  switches[1].begin(defaults::sw_2_1_pin, defaults::sw_2_2_pin);
-  switches[2].begin(defaults::sw_3_1_pin, defaults::sw_3_2_pin);
-  switches[3].begin(defaults::sw_4_pin);
+  switches[controls::sw_mode].begin(defaults::sw_1_1_pin, defaults::sw_1_2_pin);
+  switches[controls::sw_1].begin(defaults::sw_1_1_pin, defaults::sw_1_2_pin);
+  switches[controls::sw_2].begin(defaults::sw_2_1_pin, defaults::sw_2_2_pin);
+  switches[controls::sw_3].begin(defaults::sw_3_1_pin, defaults::sw_3_2_pin);
 
   // Initialize pots
-  pots[0].begin(defaults::pot_1_pin, true);
-  pots[1].begin(defaults::pot_2_pin, true);
-  pots[2].begin(defaults::pot_3_pin, true);
-  pots[3].begin(defaults::pot_attack_pin, true);
-  pots[4].begin(defaults::pot_release_pin, true);
+  pots[controls::pot_1].begin(defaults::pot_1_pin, true);
+  pots[controls::pot_2].begin(defaults::pot_2_pin, true);
+  pots[controls::pot_3].begin(defaults::pot_3_pin, true);
+  pots[controls::pot_attack].begin(defaults::pot_attack_pin, true);
+  pots[controls::pot_release].begin(defaults::pot_release_pin, true);
 }
 
 void Hardware::update() {
@@ -38,7 +38,7 @@ void Hardware::update() {
 #endif
 }
 
-bool Hardware::changed(hardware_type type, int index) {
+bool Hardware::changed(hardware_type type, unsigned char index) {
   if (type == SWITCH) {
     return switches[index].changed();
   }
@@ -54,20 +54,20 @@ bool Hardware::changed(hardware_type type, int index) {
   return false;
 }
 
-unsigned char Hardware::read(hardware_type type, int index) {
+float Hardware::read(hardware_type type, unsigned char index) {
   if (type == SWITCH) {
-    return switches[index].read();
+    return (float) switches[index].read();
   }
 
   if (type == POT) {
-    return pots[index].getValue();
+    return pots[index].getValue() / 1023.0f;
   }
 
   if (type == CV) {
-    return cv.getValue();
+    return cv.getValue() / 1023.0f;
   }
 
-  return false;
+  return 0.0f;
 }
 
 } // namespace Autosave

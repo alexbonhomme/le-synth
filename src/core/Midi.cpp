@@ -1,5 +1,6 @@
 
 #include "Midi.h"
+#include "usb_midi.h"
 
 namespace Autosave {
 
@@ -20,7 +21,9 @@ void Midi::setHandleNoteOff(void (*callback)(byte channel, byte note,
   MIDI.setHandleNoteOff(callback);
 }
 
-void Midi::begin(unsigned char channel) { MIDI.begin(channel); }
+void Midi::begin(unsigned char channel) {
+  MIDI.begin(channel);
+}
 
 void Midi::read() {
   usbMIDI.read();

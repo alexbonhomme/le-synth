@@ -14,8 +14,10 @@ void MonoSynthState::noteOff(byte note, byte velocity) {
 void MonoSynthState::process() {
   synth_->hardware->update();
 
-  if (synth_->hardware->changed(hardware_type::SWITCH, 0)) {
-    switch (synth_->hardware->read(hardware_type::SWITCH, 0)) {
+  if (synth_->hardware->changed(hardware_type::SWITCH, controls::sw_mode)) {
+    unsigned char mode = (unsigned char)synth_->hardware->read(hardware_type::SWITCH, controls::sw_mode);
+
+    switch (mode) {
     case 0:
       synth_->changeState(new MonoSynthState());
       break;
@@ -31,8 +33,10 @@ void MonoSynthState::process() {
   }
 
   // Button 1 changes the waveform type of the main oscillators
-  if (synth_->hardware->changed(hardware_type::SWITCH, 1)) {
-    switch (synth_->hardware->read(hardware_type::SWITCH, 1)) {
+  if (synth_->hardware->changed(hardware_type::SWITCH, controls::sw_1)) {
+    unsigned char waveform = (unsigned char)synth_->hardware->read(hardware_type::SWITCH, controls::sw_1);
+
+    switch (waveform) {
     case 0:
       synth_->audio->updateWaveform(WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE);
       break;
@@ -45,37 +49,37 @@ void MonoSynthState::process() {
     }
   }
 
-  if (synth_->hardware->changed(hardware_type::SWITCH, 3)) {
+  if (synth_->hardware->changed(hardware_type::SWITCH, controls::sw_3)) {
     synth_->audio->updateEnvelopeMode(
-        synth_->hardware->read(hardware_type::SWITCH, 3) == LOW);
+        synth_->hardware->read(hardware_type::SWITCH, controls::sw_3) == LOW);
   }
 
   // Update the frequency of the second oscillator
-  if (synth_->hardware->changed(hardware_type::POT, 1)) {
+  if (synth_->hardware->changed(hardware_type::POT, controls::pot_1)) {
     synth_->audio->updateOsc2Frequency(
-        (float)synth_->hardware->read(hardware_type::POT, 1) / 1023.0);
+        synth_->hardware->read(hardware_type::POT, controls::pot_1));
   }
 
   // Update the amplitude of the second oscillator
-  if (synth_->hardware->changed(hardware_type::POT, 2)) {
+  if (synth_->hardware->changed(hardware_type::POT, controls::pot_2)) {
     synth_->audio->updateOsc2Amplitude(
-        (float)synth_->hardware->read(hardware_type::POT, 2) / 1023.0);
+        synth_->hardware->read(hardware_type::POT, controls::pot_2));
   }
 
   // Update the amplitude of the sub oscillator
-  if (synth_->hardware->changed(hardware_type::POT, 3)) {
+  if (synth_->hardware->changed(hardware_type::POT, controls::pot_3)) {
     synth_->audio->updateSubAmplitude(
-        (float)synth_->hardware->read(hardware_type::POT, 3) / 1023.0);
+        synth_->hardware->read(hardware_type::POT, controls::pot_3));
   }
 
-  if (synth_->hardware->changed(hardware_type::POT, 3)) {
+  if (synth_->hardware->changed(hardware_type::POT, controls::pot_attack)) {
     synth_->audio->updateAttack(
-        (float)synth_->hardware->read(hardware_type::POT, 3) / 1023.0);
+        synth_->hardware->read(hardware_type::POT, controls::pot_attack));
   }
 
-  if (synth_->hardware->changed(hardware_type::POT, 4)) {
+  if (synth_->hardware->changed(hardware_type::POT, controls::pot_release)) {
     synth_->audio->updateRelease(
-        (float)synth_->hardware->read(hardware_type::POT, 4) / 1023.0);
+        synth_->hardware->read(hardware_type::POT, controls::pot_release));
   }
 }
 
