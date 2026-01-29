@@ -9,35 +9,38 @@ namespace Autosave {
 namespace defaults {
 static constexpr byte bounce_interval = 100;
 static constexpr float snap_multiplier = 0.001f;
-
-static constexpr byte sw_1_1_pin = 2;
-static constexpr byte sw_1_2_pin = 3;
-static constexpr byte sw_2_1_pin = 4;
-static constexpr byte sw_2_2_pin = 5;
-static constexpr byte sw_3_1_pin = 6;
-static constexpr byte sw_3_2_pin = 8;
-static constexpr byte sw_4_pin = 9;
-
-static constexpr byte pot_1_pin = A0;
-static constexpr byte pot_2_pin = A1;
-static constexpr byte pot_3_pin = A2;
-static constexpr byte pot_attack_pin = A3;
-static constexpr byte pot_release_pin = A4;
-static constexpr byte cv_pin = A5;
 } // namespace defaults
 
-enum hardware_controls {
-  SWITCH_MODE = 0,
-  SWITCH_1 = 1,
-  SWITCH_2 = 2,
-  SWITCH_3 = 3,
-  POT_1 = 4,
-  POT_2 = 5,
-  POT_3 = 6,
-  POT_ATTACK = 7,
-  POT_RELEASE = 8,
-  CV = 9
+namespace hardware {
+enum pins {
+  PIN_SW_1_1 = 2,
+  PIN_SW_1_3 = 3,
+  PIN_SW_2_1 = 4,
+  PIN_SW_2_3 = 5,
+  PIN_SW_3_1 = 6,
+  PIN_SW_3_3 = 8,
+  PIN_SW_4_1 = 9,
+  PIN_POT_1 = A0,
+  PIN_POT_2 = A1,
+  PIN_POT_3 = A2,
+  PIN_POT_ATTACK = A3,
+  PIN_POT_RELEASE = A4,
+  PIN_CV = A5,
 };
+
+enum controls {
+  CTRL_SWITCH_MODE = 0,
+  CTRL_SWITCH_1 = 1,
+  CTRL_SWITCH_2 = 2,
+  CTRL_SWITCH_3 = 3,
+  CTRL_POT_1 = 4,
+  CTRL_POT_2 = 5,
+  CTRL_POT_3 = 6,
+  CTRL_POT_ATTACK = 7,
+  CTRL_POT_RELEASE = 8,
+  CTRL_CV = 9
+};
+} // namespace hardware
 
 class HardwareControl {
 public:
@@ -121,8 +124,8 @@ public:
 
   void begin();
   void update();
-  bool changed(hardware_controls control);
-  float read(hardware_controls control);
+  bool changed(hardware::controls control);
+  float read(hardware::controls control);
 };
 
 } // namespace Autosave

@@ -6,20 +6,20 @@ Hardware::Hardware() {}
 
 void Hardware::begin() {
   // Initialize switches
-  ((SwitchControl*)controls[hardware_controls::SWITCH_MODE])->begin(defaults::sw_1_1_pin, defaults::sw_1_2_pin);
-  ((SwitchControl*)controls[hardware_controls::SWITCH_1])->begin(defaults::sw_2_1_pin, defaults::sw_2_2_pin);
-  ((SwitchControl*)controls[hardware_controls::SWITCH_2])->begin(defaults::sw_3_1_pin, defaults::sw_3_2_pin);
-  ((SwitchControl*)controls[hardware_controls::SWITCH_3])->begin(defaults::sw_4_pin);
+  ((SwitchControl*)controls[hardware::controls::CTRL_SWITCH_MODE])->begin(hardware::pins::PIN_SW_1_1, hardware::pins::PIN_SW_1_3);
+  ((SwitchControl*)controls[hardware::controls::CTRL_SWITCH_1])->begin(hardware::pins::PIN_SW_2_1, hardware::pins::PIN_SW_2_3);
+  ((SwitchControl*)controls[hardware::controls::CTRL_SWITCH_2])->begin(hardware::pins::PIN_SW_3_1, hardware::pins::PIN_SW_3_3);
+  ((SwitchControl*)controls[hardware::controls::CTRL_SWITCH_3])->begin(hardware::pins::PIN_SW_4_1);
 
   // Initialize pots
-  (controls[hardware_controls::POT_1])->begin(defaults::pot_1_pin);
-  (controls[hardware_controls::POT_2])->begin(defaults::pot_2_pin);
-  (controls[hardware_controls::POT_3])->begin(defaults::pot_3_pin);
-  (controls[hardware_controls::POT_ATTACK])->begin(defaults::pot_attack_pin);
-  (controls[hardware_controls::POT_RELEASE])->begin(defaults::pot_release_pin);
+  (controls[hardware::controls::CTRL_POT_1])->begin(hardware::pins::PIN_POT_1);
+  (controls[hardware::controls::CTRL_POT_2])->begin(hardware::pins::PIN_POT_2);
+  (controls[hardware::controls::CTRL_POT_3])->begin(hardware::pins::PIN_POT_3);
+  (controls[hardware::controls::CTRL_POT_ATTACK])->begin(hardware::pins::PIN_POT_ATTACK);
+  (controls[hardware::controls::CTRL_POT_RELEASE])->begin(hardware::pins::PIN_POT_RELEASE);
 
   // Initialize CV
-  (controls[hardware_controls::CV])->begin(defaults::cv_pin);
+  (controls[hardware::controls::CTRL_CV])->begin(hardware::pins::PIN_CV);
 }
 
 void Hardware::update() {
@@ -28,18 +28,18 @@ void Hardware::update() {
   }
 
 #ifdef DEBUG
-  if ((controls[hardware_controls::CV])->changed()) {
+  if ((controls[hardware::controls::CTRL_CV])->changed()) {
     Serial.println("CV:");
-    Serial.println((controls[hardware_controls::CV])->read());
+    Serial.println((controls[hardware::controls::CTRL_CV])->read());
   }
 #endif
 }
 
-bool Hardware::changed(hardware_controls control) {
+bool Hardware::changed(hardware::controls control) {
   return controls[control]->changed();
 }
 
-float Hardware::read(hardware_controls control) {
+float Hardware::read(hardware::controls control) {
   return controls[control]->read();
 }
 
