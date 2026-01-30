@@ -1,65 +1,26 @@
 #include "State.h"
 #include "Synth.h"
+#include "synth_waveform.h"
 
 namespace Autosave {
 
 void State::process() {
-  // Handle mode switch
-  if (synth_->hardware->changed(hardware::CTRL_SWITCH_MODE)) {
-#ifdef DEBUG
-    Serial.println("Updating mode: " +
-                   String(synth_->hardware->read(hardware::CTRL_SWITCH_MODE)));
-#endif
-
-    byte mode = (byte)synth_->hardware->read(hardware::CTRL_SWITCH_MODE);
-
-    switch (mode) {
-    case 0:
-#ifdef DEBUG
-      Serial.println("Changing to mono synth state");
-#endif
-      synth_->changeState(new MonoSynthState());
-      break;
-    case 1:
-// @TODO: Implement polyphonic synth state
-#ifdef DEBUG
-      Serial.println("Polyphonic synth state not implemented");
-#endif
-      break;
-    case 2:
-// @TODO: Implement arpeggiator synth state
-#ifdef DEBUG
-      Serial.println("Arpeggiator synth state not implemented");
-#endif
-      break;
-    default:
-      break;
-    }
-  }
-
-  // Handle attack
+  // Attack
   if (synth_->hardware->changed(hardware::CTRL_POT_ATTACK)) {
-    // #ifdef DEBUG
-    // Serial.println("Updating attack: " +
-    // String(synth_->hardware->read(hardware_type::POT,
-    // controls::pot_attack))); #endif
-
     synth_->audio->updateAttack(
         synth_->hardware->read(hardware::CTRL_POT_ATTACK));
   }
 
-  // Handle decay/release
+  // Decay/release
   if (synth_->hardware->changed(hardware::CTRL_POT_RELEASE)) {
-    // #ifdef DEBUG
-    // Serial.println("Updating release: " +
-    // String(synth_->hardware->read(hardware_type::POT,
-    // controls::pot_release))); #endif
-
     synth_->audio->updateRelease(
         synth_->hardware->read(hardware::CTRL_POT_RELEASE));
   }
 }
 
+/**
+ * Mono synth state
+ */
 void MonoSynthState::noteOn(byte note, byte velocity) {
   synth_->audio->noteOn(note, velocity, detune_);
 }
@@ -81,26 +42,33 @@ void MonoSynthState::process() {
     byte waveform = (byte)synth_->hardware->read(hardware::CTRL_SWITCH_1);
     switch (waveform) {
     case 0:
-      synth_->audio->updateWaveform(WAVEFORM_TRIANGLE);
+      synth_->audio->updateWaveform(WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE);
       break;
     case 1:
       synth_->audio->updateWaveform(WAVEFORM_BANDLIMIT_SQUARE);
       break;
     default:
-      synth_->audio->updateWaveform(WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE);
+      synth_->audio->updateWaveform(WAVEFORM_BANDLIMIT_PULSE);
       break;
     }
   }
 
+  if (synth_->hardware->changed(hardware::CTRL_SWITCH_2)) {
+#ifdef DEBUG
+    Serial.println("Not implemented yet! Value: " +
+                   String(synth_->hardware->read(hardware::CTRL_SWITCH_2)));
+#endif
+  }
+
   // @TODO: Not connected yet (prototype)
-  // if (synth_->hardware->changed(hardware_type::SWITCH, controls::sw_3)) {
+  // if (synth_->hardware->changed(hardware::CTRL_SWITCH_3)) {
   //   #ifdef DEBUG
   //   Serial.println("Updating envelope mode: " +
-  //   String(synth_->hardware->read(hardware_type::SWITCH, controls::sw_3)));
+  //   String(synth_->hardware->read(hardware::CTRL_SWITCH_3)));
   //   #endif
 
   //   synth_->audio->updateEnvelopeMode(
-  //       synth_->hardware->read(hardware_type::SWITCH, controls::sw_3) ==
+  //       synth_->hardware->read(hardware::CTRL_SWITCH_3) ==
   //       LOW);
   // }
 

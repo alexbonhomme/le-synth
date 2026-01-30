@@ -13,8 +13,8 @@ static constexpr float snap_multiplier = 0.001f;
 
 namespace hardware {
 enum pins {
-  PIN_SW_1_1 = 2,
-  PIN_SW_1_3 = 3,
+  PIN_SW_1_1 = 3,
+  PIN_SW_1_3 = 2,
   PIN_SW_2_1 = 4,
   PIN_SW_2_3 = 5,
   PIN_SW_3_1 = 6,
@@ -85,19 +85,15 @@ public:
   }
 
   float read() {
-    if (has_two_pins) {
-      if (bounce[0].read() == LOW) {
-        return 2.0f;
-      }
-
-      if (bounce[1].read() == LOW) {
-        return 0.0f;
-      }
-
-      return 1.0f;
+    if (bounce[0].read() == LOW) {
+      return 0.0f;
     }
 
-    return bounce[0].read() == LOW ? 0.0f : 1.0f;
+    if (has_two_pins && bounce[1].read() == LOW) {
+      return 2.0f;
+    }
+
+    return 1.0f;
   }
 };
 

@@ -12,6 +12,10 @@ Audio::Audio()
       patchCord8(envelope2, 0, i2s1, 0) {}
 
 void Audio::begin() {
+  #ifdef DEBUG
+  Serial.println("Initializing audio");
+  #endif
+  
   // Audio connections require memory to work. For more
   // detailed information, see the MemoryAndCpuUsage example
   AudioMemory(20);

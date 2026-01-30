@@ -15,6 +15,7 @@ class Synth {
 private:
   inline static Synth *instance_ = nullptr;
   State *state_;
+  void handleModeSwitch_();
 
 public:
   Synth();

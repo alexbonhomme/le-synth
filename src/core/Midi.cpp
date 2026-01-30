@@ -22,6 +22,10 @@ void Midi::setHandleNoteOff(void (*callback)(byte channel, byte note,
 }
 
 void Midi::begin(byte channel) {
+  #ifdef DEBUG
+  Serial.println("Initializing MIDI");
+  #endif
+
   MIDI.begin(channel);
 }
 
