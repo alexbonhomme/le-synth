@@ -1,4 +1,5 @@
 #include "Audio.h"
+#include "synth_waveform.h"
 
 #include <cmath>
 
@@ -12,10 +13,10 @@ Audio::Audio()
       patchCord8(envelope2, 0, i2s1, 0) {}
 
 void Audio::begin() {
-  #ifdef DEBUG
+#ifdef DEBUG
   Serial.println("Initializing audio");
-  #endif
-  
+#endif
+
   // Audio connections require memory to work. For more
   // detailed information, see the MemoryAndCpuUsage example
   AudioMemory(20);
@@ -137,6 +138,21 @@ void Audio::updateWaveform(int waveform) {
   waveform1.begin(waveform);
   waveform2.begin(waveform);
   waveform_sub.begin(waveform);
+
+  if (waveform == WAVEFORM_BANDLIMIT_PULSE) {
+    waveform1.pulseWidth(0.25);
+    waveform2.pulseWidth(0.25);
+    waveform_sub.pulseWidth(0.25);
+
+    // Gain correction
+    mixer1.gain(0, defaults::main_mix_gain * 2.0f);
+    mixer1.gain(1, defaults::main_mix_gain * 2.0f);
+    mixer1.gain(2, defaults::sub_mix_gain * 2.0f);
+  } else {
+    mixer1.gain(0, defaults::main_mix_gain);
+    mixer1.gain(1, defaults::main_mix_gain);
+    mixer1.gain(2, defaults::sub_mix_gain);
+  }
 
   AudioInterrupts();
 }
