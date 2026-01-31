@@ -1,16 +1,16 @@
+#include <cmath>
+
 #include "Audio.h"
 #include "synth_waveform.h"
-
-#include <cmath>
 
 namespace Autosave {
 
 Audio::Audio()
     : patchCord1(waveform1, 0, mixer1, 0), patchCord2(waveform2, 0, mixer1, 1),
-      patchCord3(waveform_sub, 0, filter1, 0),
-      patchCord4(filter1, 0, mixer1, 2), patchCord5(mixer1, envelope1),
-      patchCord6(envelope1, 0, i2s1, 1), patchCord7(dc_signal, 0, envelope2, 0),
-      patchCord8(envelope2, 0, i2s1, 0) {}
+      patchCord3(waveform3, 0, mixer1, 2), patchCord4(mixer1, envelope),
+      patchCord5(envelope, 0, i2s1, 1),
+      patchCord6(dc_signal, 0, envelope_filter, 0),
+      patchCord7(envelope_filter, 0, i2s1, 0) {}
 
 void Audio::begin() {
 #ifdef DEBUG
@@ -23,46 +23,45 @@ void Audio::begin() {
 
   waveform1.begin(current_waveform);
   waveform2.begin(current_waveform);
-  waveform_sub.begin(current_waveform_sub);
+  waveform3.begin(WAVEFORM_TRIANGLE);
 
   waveform1.frequency(freq);
   waveform2.frequency(freq_2);
-  waveform_sub.frequency(freq_sub);
-
-  filter1.frequency(freq_sub * 2);
-  filter1.resonance(0.6);
+  waveform3.frequency(freq_sub);
 
   waveform1.amplitude(amplitude);
   waveform2.amplitude(amplitude_2);
-  waveform_sub.amplitude(amplitude_sub);
+  waveform3.amplitude(amplitude_sub);
+
+  mixer1.gain(0, defaults::main_mix_gain);
+  mixer1.gain(1, defaults::main_mix_gain);
+  mixer1.gain(2, defaults::main_mix_gain);
 
   // Configure DC signal for envelope2 (constant voltage source)
   dc_signal.amplitude(defaults::filter_env_gain);
 
   // Configure envelope1
-  envelope1.attack(attack_time);
-  envelope1.hold(0);
-  envelope1.decay(0);
-  envelope1.sustain(1.0);
-  envelope1.release(release_time);
-  envelope1.releaseNoteOn(0);
+  envelope.attack(attack_time);
+  envelope.hold(0);
+  envelope.decay(0);
+  envelope.sustain(1.0);
+  envelope.release(release_time);
+  envelope.releaseNoteOn(0);
 
   // Configure envelope2 with the same ADSR values as envelope1
-  envelope2.attack(attack_time);
-  envelope2.hold(0);
-  envelope2.decay(0);
-  envelope2.sustain(1.0);
-  envelope2.release(release_time);
-  envelope2.releaseNoteOn(0);
+  envelope_filter.attack(attack_time);
+  envelope_filter.hold(0);
+  envelope_filter.decay(0);
+  envelope_filter.sustain(1.0);
+  envelope_filter.release(release_time);
+  envelope_filter.releaseNoteOn(0);
 
-  mixer1.gain(0, defaults::main_mix_gain);
-  mixer1.gain(1, defaults::main_mix_gain);
-  mixer1.gain(2, defaults::sub_mix_gain);
+
 }
 
 void Audio::noteOn(byte note, byte velocity, float detune) {
   current_note = note;
-  float sustain = (float)velocity / 127.0;
+  float sustain = (float)velocity / 127.0f;
 
   // update main oscillator
   freq = computeFrequencyFromNote(current_note, 0);
@@ -70,46 +69,44 @@ void Audio::noteOn(byte note, byte velocity, float detune) {
   // update other oscillators
   freq_2 = computeFrequencyFromNote(current_note, detune);
 
+  // update sub oscillator
+  freq_sub = computeSubFrequency(freq, 2.0);
+
   AudioNoInterrupts();
 
   waveform1.frequency(freq);
   waveform2.frequency(freq_2);
+  waveform3.frequency(freq_sub);
 
-  // update sub oscillator
-  freq_sub = computeSubFrequency(freq, 2.0);
+  envelope.sustain(sustain);
+  envelope_filter.sustain(sustain * 0.75);
 
-  waveform_sub.frequency(freq_sub);
-  filter1.frequency(freq_sub * 2);
-
-  envelope1.sustain(sustain);
-  envelope2.sustain(sustain * 0.8);
-
-  envelope1.noteOn();
-  envelope2.noteOn();
+  envelope.noteOn();
+  envelope_filter.noteOn();
 
   AudioInterrupts();
 }
 
 void Audio::noteOff() {
-  envelope1.noteOff();
-  envelope2.noteOff();
+  envelope.noteOff();
+  envelope_filter.noteOff();
 }
 
 void Audio::updateEnvelopeMode(bool percussive_mode) {
   if (percussive_mode) {
-    envelope1.decay(release_time);
-    envelope1.sustain(0.0);
-    envelope1.release(0);
-    envelope2.decay(release_time);
-    envelope2.sustain(0.0);
-    envelope2.release(0);
+    envelope.decay(release_time);
+    envelope.sustain(0.0);
+    envelope.release(0);
+    envelope_filter.decay(release_time);
+    envelope_filter.sustain(0.0);
+    envelope_filter.release(0);
   } else {
-    envelope1.decay(0);
-    envelope1.sustain(1.0);
-    envelope1.release(release_time);
-    envelope2.decay(0);
-    envelope2.sustain(1.0);
-    envelope2.release(release_time);
+    envelope.decay(0);
+    envelope.sustain(1.0);
+    envelope.release(release_time);
+    envelope_filter.decay(0);
+    envelope_filter.sustain(1.0);
+    envelope_filter.release(release_time);
   }
 }
 
@@ -123,8 +120,7 @@ void Audio::updateOsc2Amplitude(float amplitude) {
 }
 
 void Audio::updateSubAmplitude(float amplitude) {
-  amplitude_sub = amplitude * 0.5; // attenuation to avoid clipping in filter
-  waveform_sub.amplitude(amplitude_sub);
+  waveform3.amplitude(amplitude);
 }
 
 void Audio::updateWaveform(int waveform) {
@@ -137,21 +133,21 @@ void Audio::updateWaveform(int waveform) {
 
   waveform1.begin(waveform);
   waveform2.begin(waveform);
-  waveform_sub.begin(waveform);
+  // waveform3.begin(waveform);
 
   if (waveform == WAVEFORM_BANDLIMIT_PULSE) {
     waveform1.pulseWidth(0.25);
     waveform2.pulseWidth(0.25);
-    waveform_sub.pulseWidth(0.25);
+    // waveform3.pulseWidth(0.25);
 
     // Gain correction
     mixer1.gain(0, defaults::main_mix_gain * 2.0f);
     mixer1.gain(1, defaults::main_mix_gain * 2.0f);
-    mixer1.gain(2, defaults::sub_mix_gain * 2.0f);
+    // mixer1.gain(2, defaults::main_mix_gain * 2.0f);
   } else {
     mixer1.gain(0, defaults::main_mix_gain);
     mixer1.gain(1, defaults::main_mix_gain);
-    mixer1.gain(2, defaults::sub_mix_gain);
+    // mixer1.gain(2, defaults::main_mix_gain);
   }
 
   AudioInterrupts();
@@ -162,8 +158,8 @@ void Audio::updateAttack(float attack) {
 
   AudioNoInterrupts();
 
-  envelope1.attack(attack_time);
-  envelope2.attack(attack_time);
+  envelope.attack(attack_time);
+  envelope_filter.attack(attack_time);
 
   AudioInterrupts();
 }
@@ -173,8 +169,8 @@ void Audio::updateRelease(float release) {
 
   AudioNoInterrupts();
 
-  envelope1.release(release_time);
-  envelope2.release(release_time);
+  envelope.release(release_time);
+  envelope_filter.release(release_time);
 
   AudioInterrupts();
 }

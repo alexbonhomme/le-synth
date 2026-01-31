@@ -7,8 +7,7 @@
 namespace Autosave {
 
 namespace defaults {
-static constexpr float main_mix_gain = 0.1f;
-static constexpr float sub_mix_gain = 0.35f;
+static constexpr float main_mix_gain = 0.085f;
 static constexpr float filter_env_gain = 0.5f;
 } // namespace defaults
 
@@ -29,15 +28,14 @@ public:
 
 private:
   // GUItool: begin automatically generated code
-  AudioSynthWaveform waveform1;     // xy=687,580
-  AudioSynthWaveform waveform2;     // xy=688,627
-  AudioSynthWaveform waveform_sub;  // xy=686,673
-  AudioFilterStateVariable filter1; // xy=692,703
-  AudioMixer4 mixer1;               // xy=897,623
-  AudioEffectEnvelope envelope1;    // xy=1087,622
-  AudioEffectEnvelope envelope2;    // xy=1087,680
-  AudioSynthWaveformDc dc_signal;   // xy=687,680
-  AudioOutputI2S i2s1;              // xy=1271,629
+  AudioSynthWaveform waveform1;
+  AudioSynthWaveform waveform2;
+  AudioSynthWaveform waveform3;
+  AudioMixer4 mixer1;
+  AudioEffectEnvelope envelope;
+  AudioEffectEnvelope envelope_filter;
+  AudioSynthWaveformDc dc_signal;
+  AudioOutputI2S i2s1;
   AudioConnection patchCord1;
   AudioConnection patchCord2;
   AudioConnection patchCord3;
@@ -49,9 +47,6 @@ private:
   // GUItool: end automatically generated code
 
   int current_waveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
-  int current_waveform_sub = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
-
-  float octave_divider = 0.0f;
 
   float freq = 440.0f;
   float freq_2 = 440.0f;

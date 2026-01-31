@@ -41,12 +41,13 @@ void Hardware::update() {
     controls[i]->update();
   }
 
-#ifdef DEBUG
-  if ((controls[hardware::controls::CTRL_CV])->changed()) {
-    Serial.println("CV:");
-    Serial.println((controls[hardware::controls::CTRL_CV])->read());
-  }
-#endif
+  // @TODO: Implement CV input
+// #ifdef DEBUG
+//   if ((controls[hardware::controls::CTRL_CV])->changed()) {
+//     Serial.println("CV:");
+//     Serial.println((controls[hardware::controls::CTRL_CV])->read());
+//   }
+// #endif
 }
 
 bool Hardware::changed(hardware::controls control) {
