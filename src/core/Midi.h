@@ -21,7 +21,8 @@ static constexpr byte SYSEX_SET_CHANNEL_COMMAND[] = {0x7D, 0x00, 0x01};
 static constexpr unsigned SYSEX_SET_CHANNEL_SIZE = 4;
 static constexpr unsigned SYSEX_SET_CHANNEL_SIZE_FULL = 6;
 static constexpr unsigned SYSEX_GET_CHANNEL_SIZE = 5;
-static constexpr byte SYSEX_GET_CHANNEL_COMMAND[] = {0xF0, 0x7D, 0x00, 0x03, 0xF7};
+static constexpr byte SYSEX_GET_CHANNEL_COMMAND[] = {0xF0, 0x7D, 0x00, 0x03,
+                                                     0xF7};
 } // namespace midi_config
 
 class Midi {
@@ -32,24 +33,22 @@ public:
                                         byte velocity));
   void setHandleNoteOff(void (*callback)(byte channel, byte note,
                                          byte velocity));
-  void setHandleSystemExclusive(void (*callback)(byte *array, unsigned size));
-  /** Loads channel from EEPROM and starts MIDI. */
+
   void begin();
   void setChannel(byte channel);
   byte getChannel() const { return channel_; }
-  void sendSysEx(const byte *data, unsigned size);
   void read();
 
-  /** Static SysEx handler to register with the MIDI library. */
-  static void handleSysEx(byte *array, unsigned size);
-
 private:
-  void handleSysExInternal(byte *array, unsigned size);
+  static Midi *instance_;
+  byte channel_ = 1;
+
   byte loadChannelFromEeprom();
   void saveChannelToEeprom(byte channel);
 
-  static Midi *instance_;
-  byte channel_ = 1;
+  /** Static SysEx handler to register with the MIDI library. */
+  static void handleSysEx(byte *array, unsigned size);
+  void sendSysEx(const byte *data, unsigned size);
 };
 
 } // namespace Autosave

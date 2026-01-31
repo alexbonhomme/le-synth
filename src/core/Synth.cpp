@@ -11,6 +11,9 @@ Synth::Synth() {
   hardware = new Hardware();
   audio = new Audio();
   midi = new Midi();
+  
+  midi->setHandleNoteOn(&Synth::midiNoteOn);
+  midi->setHandleNoteOff(&Synth::midiNoteOff);
 }
 
 void Synth::begin() {
@@ -26,11 +29,6 @@ void Synth::begin() {
 
   hardware->begin();
   audio->begin();
-
-  midi->setHandleNoteOn(&Synth::midiNoteOn);
-  midi->setHandleNoteOff(&Synth::midiNoteOff);
-  midi->setHandleSystemExclusive(&Midi::handleSysEx);
-
   midi->begin();
 }
 
