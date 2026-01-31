@@ -27,9 +27,11 @@ void Synth::begin() {
   hardware->begin();
   audio->begin();
 
-  midi->setHandleNoteOn(&Synth::noteOne);
-  midi->setHandleNoteOff(&Synth::noteOff);
-  midi->begin(defaults::midi_channel);
+  midi->setHandleNoteOn(&Synth::midiNoteOn);
+  midi->setHandleNoteOff(&Synth::midiNoteOff);
+  midi->setHandleSystemExclusive(&Midi::handleSysEx);
+
+  midi->begin();
 }
 
 void Synth::process() {
@@ -102,7 +104,7 @@ void Synth::changeState(State *state) {
   state_->setSynth(this);
 }
 
-void Synth::noteOne(byte channel, byte note, byte velocity) {
+void Synth::midiNoteOn(byte channel, byte note, byte velocity) {
   if (instance_ == nullptr) {
     return;
   }
@@ -110,7 +112,7 @@ void Synth::noteOne(byte channel, byte note, byte velocity) {
   instance_->state_->noteOn(note, velocity);
 }
 
-void Synth::noteOff(byte channel, byte note, byte velocity) {
+void Synth::midiNoteOff(byte channel, byte note, byte velocity) {
   if (instance_ == nullptr) {
     return;
   }

@@ -1,15 +1,14 @@
 #ifndef AUTOSAVE_SYNTH_H
 #define AUTOSAVE_SYNTH_H
 
+#include <Arduino.h>
+
 #include "Audio.h"
 #include "Hardware.h"
 #include "Midi.h"
 #include "State.h"
 
 namespace Autosave {
-namespace defaults {
-static constexpr byte midi_channel = 8;
-} // namespace defaults
 
 class Synth {
 private:
@@ -28,8 +27,8 @@ public:
   void process();
   void changeState(State *state);
 
-  static void noteOne(byte channel, byte note, byte velocity);
-  static void noteOff(byte channel, byte note, byte velocity);
+  static void midiNoteOn(byte channel, byte note, byte velocity);
+  static void midiNoteOff(byte channel, byte note, byte velocity);
 };
 
 } // namespace Autosave
