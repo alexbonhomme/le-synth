@@ -1,30 +1,32 @@
 import { buildSysex, buildGetChannelSysex, parseChannelFromSysex } from './sysex.js';
 import { setStatus, setActiveChannel, setCurrentChannelDisplay, buildChannelButtons } from './ui.js';
-import { fillOutputs, attachInputListeners, requestMIDIAccess } from './midi.js';
+import { findOutputByName, attachInputListeners, requestMIDIAccess } from './midi.js';
+import { MIDI_DEVICE_NAME } from './constants.js';
 
 (() => {
   const statusEl = document.getElementById('status');
-  const outputSelect = document.getElementById('output');
   const channelGrid = document.getElementById('channelGrid');
   const currentChannelEl = document.getElementById('currentChannel');
 
   let midiAccess = null;
+  let icarusOutput = null;
+
+  function resolveIcarus() {
+    icarusOutput = midiAccess ? findOutputByName(midiAccess, MIDI_DEVICE_NAME) : null;
+    return icarusOutput;
+  }
 
   function sendChannel(channel) {
-    const outputId = outputSelect.value;
-    if (!outputId || !midiAccess) return;
-
-    const output = midiAccess.outputs.get(outputId);
-    if (!output) return;
+    if (!icarusOutput) return;
 
     const data = buildSysex(channel);
     if (!data) return;
 
     try {
-      output.send(data);
+      icarusOutput.port.send(data);
       setActiveChannel(channelGrid, channel);
       setCurrentChannelDisplay(currentChannelEl, channel);
-      setStatus(statusEl, 'Sent channel ' + channel + ' to ' + output.name + '.', 'connected');
+      setStatus(statusEl, 'Sent channel ' + channel + ' to ' + icarusOutput.port.name + '.', 'connected');
     } catch (err) {
       setStatus(statusEl, 'Send failed: ' + err.message, 'error');
     }
@@ -35,64 +37,60 @@ import { fillOutputs, attachInputListeners, requestMIDIAccess } from './midi.js'
     if (channel != null) {
       setCurrentChannelDisplay(currentChannelEl, channel);
       setActiveChannel(channelGrid, channel);
-      const output = outputSelect.value && midiAccess ? midiAccess.outputs.get(outputSelect.value) : null;
-      const name = output ? output.name : 'device';
-      setStatus(statusEl, 'Current channel ' + channel + ' from ' + name + '.', 'connected');
+      const name = icarusOutput ? icarusOutput.port.name : 'Icarus';
+      // setStatus(statusEl, 'Current channel ' + channel + ' from ' + name + '.', 'connected');
     }
   }
 
   function requestCurrentChannel() {
-    const outputId = outputSelect.value;
-    if (!outputId || !midiAccess) {
-      setCurrentChannelDisplay(currentChannelEl, null);
-      return;
-    }
-    const output = midiAccess.outputs.get(outputId);
-    if (!output) {
+    if (!icarusOutput) {
       setCurrentChannelDisplay(currentChannelEl, null);
       return;
     }
     setCurrentChannelDisplay(currentChannelEl, null);
     try {
-      output.send(buildGetChannelSysex());
+      icarusOutput.port.send(buildGetChannelSysex());
     } catch (_) {}
   }
 
   function onStateChange() {
-    fillOutputs(outputSelect, midiAccess);
-    if (midiAccess && midiAccess.outputs.size > 0) {
-      setStatus(statusEl, 'MIDI access granted. Select an output and a channel.', 'connected');
+    resolveIcarus();
+    if (icarusOutput) {
+      setStatus(statusEl, 'Connected to ' + icarusOutput.port.name + '.', 'connected');
+    } else if (midiAccess && midiAccess.outputs.size > 0) {
+      setStatus(statusEl, 'Icarus MIDI device not found. Connect the device and refresh.', 'error');
     } else {
-      setStatus(statusEl, 'No MIDI outputs available.', 'pending');
+      setStatus(statusEl, 'No MIDI outputs available. Connect Icarus and refresh.', 'error');
     }
     requestCurrentChannel();
   }
 
   function init() {
-    setStatus(statusEl, 'Requesting MIDI access (Sysex allowed)…', 'pending');
+    setStatus(statusEl, 'Requesting MIDI access…', 'pending');
 
     requestMIDIAccess()
       .then((access) => {
         midiAccess = access;
-        fillOutputs(outputSelect, midiAccess);
         attachInputListeners(midiAccess, onMidiMessage);
         access.onstatechange = () => {
           onStateChange();
           attachInputListeners(midiAccess, onMidiMessage);
         };
 
-        if (access.outputs.size > 0) {
-          setStatus(statusEl, 'MIDI access granted. Select an output and a channel.', 'connected');
+        resolveIcarus();
+        if (icarusOutput) {
+          setStatus(statusEl, 'Connected to ' + icarusOutput.port.name + '.', 'connected');
+        } else if (access.outputs.size > 0) {
+          setStatus(statusEl, 'Icarus MIDI device not found. Connect the device and refresh.', 'error');
         } else {
-          setStatus(statusEl, 'No MIDI outputs found. Connect the device and refresh.', 'pending');
+          setStatus(statusEl, 'No MIDI device connected. Connect Icarus and refresh.', 'error');
         }
-        outputSelect.addEventListener('change', requestCurrentChannel);
         requestCurrentChannel();
       })
       .catch((err) => {
         const msg = err.message.includes('not supported')
           ? err.message
-          : 'MIDI access denied: ' + err.message;
+          : 'Cannot connect: ' + err.message;
         setStatus(statusEl, msg, 'error');
       });
   }

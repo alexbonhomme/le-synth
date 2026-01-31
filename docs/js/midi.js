@@ -1,21 +1,11 @@
-export function fillOutputs(outputSelect, midiAccess) {
-  const selectedId = outputSelect.value;
-  outputSelect.innerHTML = '<option value="">— Select port —</option>';
-  if (!midiAccess) return;
-
-  midiAccess.outputs.forEach((port, id) => {
-    const opt = document.createElement('option');
-    opt.value = id;
-    opt.textContent = port.name || id;
-    outputSelect.appendChild(opt);
-  });
-
-  outputSelect.disabled = midiAccess.outputs.size === 0;
-  if (midiAccess.outputs.size === 1) {
-    outputSelect.selectedIndex = 1;
-  } else if (selectedId && midiAccess.outputs.has(selectedId)) {
-    outputSelect.value = selectedId;
+/** Returns the first MIDI output whose name contains the given string (case-insensitive). */
+export function findOutputByName(midiAccess, nameSubstring) {
+  if (!midiAccess || !nameSubstring) return null;
+  const lower = nameSubstring.toLowerCase();
+  for (const [id, port] of midiAccess.outputs) {
+    if ((port.name || '').toLowerCase().includes(lower)) return { id, port };
   }
+  return null;
 }
 
 export function attachInputListeners(midiAccess, onMidiMessage) {

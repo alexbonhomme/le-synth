@@ -9,24 +9,17 @@
 <body>
   <main>
     <h1>ICARUS</h1>
-    <p class="subtitle">Set MIDI channel via SysEx</p>
+    <p class="subtitle">MIDI configuration tool</p>
 
     <div id="status" class="status pending">Request MIDI access to continue.</div>
-
-    <label for="output">MIDI output</label>
-    <select id="output" disabled>
-      <option value="">— Select port —</option>
-    </select>
 
     <div class="current-channel" id="currentChannelWrap">
       <span class="current-channel-label">Current MIDI channel</span>
       <span class="current-channel-value" id="currentChannel">—</span>
     </div>
 
-    <label>Channel (1-16)</label>
+    <span class="channel-label">Select MIDI channel</span>
     <div class="channel-grid" id="channelGrid"></div>
-
-    <p class="footer">SysEx: F0 7D 00 01 nn F7 (nn = channel - 1)</p>
   </main>
 
   <script type="module" src="js/app.js"></script>
