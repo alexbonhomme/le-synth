@@ -1,0 +1,40 @@
+---
+description: Use conventional commit format for all commit messages
+alwaysApply: true
+---
+
+# Conventional Commits
+
+All commit messages **must** follow the [Conventional Commits](https://www.conventionalcommits.org/) format.
+
+## Format
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+- **Type** (required): `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, or similar.
+- **Scope** (optional): area of the codebase, e.g. `midi`, `ui`, `docs`.
+- **Description** (required): short imperative summary, lowercase after the colon, no period at the end.
+- **Body** (optional): longer explanation; wrap at 72 characters.
+- **Footer** (optional): e.g. `BREAKING CHANGE:`, `Refs #123`.
+
+## Examples
+
+```text
+feat(docs): auto-connect to Icarus MIDI and show connection status
+fix(midi): handle disconnected device in state change
+docs: add conventional commit rule
+chore(deps): bump eslint to 8.x
+```
+
+## Rules
+
+- Use **imperative mood** in the subject: "add" not "added", "fix" not "fixed".
+- Keep the subject line under **~50 characters** when practical.
+- Do **not** end the subject with a period.
+- When committing on behalf of the user, always use this format.
