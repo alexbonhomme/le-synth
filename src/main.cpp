@@ -3,6 +3,8 @@
 #include <MIDI.h>
 #include <ResponsiveAnalogRead.h>
 
+// #define DISABLE_LOGGING
+
 #include "core/Synth.h"
 
 Autosave::Synth synth;

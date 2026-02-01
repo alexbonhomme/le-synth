@@ -1,8 +1,9 @@
 #include <EEPROM.h>
 #include <cstring>
+#include "usb_midi.h"
 
 #include "Midi.h"
-#include "usb_midi.h"
+#include "lib/Logger.h"
 
 namespace Autosave {
 
@@ -17,6 +18,15 @@ Midi::Midi() {
   usbMIDI.setHandleSystemExclusive(&Midi::handleSysEx);
   MIDI.setHandleSystemExclusive(&Midi::handleSysEx);
 }
+
+void Midi::begin() {
+  channel_ = loadChannelFromEeprom();
+
+  AutosaveLib::Logger::info("Initializing MIDI module (channel: " + String(channel_) + ")");
+
+  MIDI.begin(channel_);
+}
+
 void Midi::setHandleNoteOn(void (*callback)(byte channel, byte note,
                                             byte velocity)) {
   usbMIDI.setHandleNoteOn(callback);
@@ -97,9 +107,9 @@ byte Midi::loadChannelFromEeprom() {
   if (ch < 1 || ch > 16) {
     return midi_config::default_channel;
   }
-#ifdef DEBUG
-  Serial.println("Loaded MIDI channel from EEPROM: " + String(ch));
-#endif
+
+  AutosaveLib::Logger::debug("Loaded MIDI channel from EEPROM: " + String(ch));
+
   return ch;
 }
 
@@ -113,15 +123,7 @@ void Midi::saveChannelToEeprom(byte channel) {
   EEPROM.write(midi_config::EEPROM_ADDR_CHANNEL, channel);
 }
 
-void Midi::begin() {
-  channel_ = loadChannelFromEeprom();
 
-#ifdef DEBUG
-  Serial.println("Initializing MIDI to channel " + String(channel_));
-#endif
-
-  MIDI.begin(channel_);
-}
 
 void Midi::setChannel(byte channel) {
   if (channel < 1 || channel > 16) {
@@ -132,9 +134,7 @@ void Midi::setChannel(byte channel) {
   saveChannelToEeprom(channel);
   MIDI.begin(channel);
 
-#ifdef DEBUG
-  Serial.println("MIDI channel set to " + String(channel));
-#endif
+  AutosaveLib::Logger::debug("MIDI channel set to " + String(channel));
 }
 
 void Midi::read() {

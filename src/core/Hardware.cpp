@@ -1,13 +1,12 @@
 #include "Hardware.h"
+#include "lib/Logger.h"
 
 namespace Autosave {
 
 Hardware::Hardware() {}
 
 void Hardware::begin() {
-  #ifdef DEBUG
-  Serial.println("Initializing hardware");
-  #endif
+  AutosaveLib::Logger::info("Initializing Hardware module");
 
   // Initialize switches
   controls[hardware::controls::CTRL_SWITCH_MODE] = new SwitchControl();

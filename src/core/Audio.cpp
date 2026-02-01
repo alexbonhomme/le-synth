@@ -1,7 +1,8 @@
 #include <cmath>
+#include "synth_waveform.h"
 
 #include "Audio.h"
-#include "synth_waveform.h"
+#include "lib/Logger.h"
 
 namespace Autosave {
 
@@ -13,9 +14,7 @@ Audio::Audio()
       patchCord7(envelope_filter, 0, i2s1, 0) {}
 
 void Audio::begin() {
-#ifdef DEBUG
-  Serial.println("Initializing audio");
-#endif
+  AutosaveLib::Logger::info("Initializing Audio module");
 
   // Audio connections require memory to work. For more
   // detailed information, see the MemoryAndCpuUsage example
@@ -124,10 +123,7 @@ void Audio::updateSubAmplitude(float amplitude) {
 }
 
 void Audio::updateWaveform(int waveform) {
-#ifdef DEBUG
-  Serial.println("Osc 1 & 2 waveform:");
-  Serial.println(waveform);
-#endif
+  AutosaveLib::Logger::debug("Osc 1 & 2 waveform: " + String(waveform));
 
   AudioNoInterrupts();
 

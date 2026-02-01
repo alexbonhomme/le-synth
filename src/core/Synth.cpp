@@ -1,4 +1,5 @@
 #include "Synth.h"
+#include "lib/Logger.h"
 
 namespace Autosave {
 
@@ -11,21 +12,14 @@ Synth::Synth() {
   hardware = new Hardware();
   audio = new Audio();
   midi = new Midi();
-  
+
   midi->setHandleNoteOn(&Synth::midiNoteOn);
   midi->setHandleNoteOff(&Synth::midiNoteOff);
 }
 
 void Synth::begin() {
-
-#ifdef DEBUG
-  Serial.begin(115200);
-  while (!Serial) {
-    delay(100);
-  }
-
-  Serial.println("Initializing synth");
-#endif
+  AutosaveLib::Logger::begin(AutosaveLib::Logger::LEVEL_INFO);
+  AutosaveLib::Logger::info("Initializing Synth module");
 
   hardware->begin();
   audio->begin();
@@ -40,20 +34,21 @@ void Synth::process() {
 
   state_->process();
 
-  // #ifdef DEBUG
-  //   Serial.print("Processor: ");
-  //   Serial.print(AudioProcessorUsage());
-  //   Serial.print(", ");
-  //   Serial.print(AudioProcessorUsageMax());
-  //   Serial.print("(max)");
-  //   Serial.print("    ");
-  //   Serial.print("Memory: ");
-  //   Serial.print(AudioMemoryUsage());
-  //   Serial.print(", ");
-  //   Serial.print(AudioMemoryUsageMax());
-  //   Serial.print("(max)");
-  //   Serial.println();
-  // #endif
+  AutosaveLib::Logger::print("Processor: ", AutosaveLib::Logger::LEVEL_DEBUG);
+  AutosaveLib::Logger::print(AudioProcessorUsage(),
+                             AutosaveLib::Logger::LEVEL_DEBUG);
+  AutosaveLib::Logger::print(", ", AutosaveLib::Logger::LEVEL_DEBUG);
+  AutosaveLib::Logger::print(AudioProcessorUsageMax(),
+                             AutosaveLib::Logger::LEVEL_DEBUG);
+  AutosaveLib::Logger::print("(max)", AutosaveLib::Logger::LEVEL_DEBUG);
+  AutosaveLib::Logger::println("    ", AutosaveLib::Logger::LEVEL_DEBUG);
+  AutosaveLib::Logger::print("Memory: ", AutosaveLib::Logger::LEVEL_DEBUG);
+  AutosaveLib::Logger::print(AudioMemoryUsage(),
+                             AutosaveLib::Logger::LEVEL_DEBUG);
+  AutosaveLib::Logger::print(", ", AutosaveLib::Logger::LEVEL_DEBUG);
+  AutosaveLib::Logger::print(AudioMemoryUsageMax(),
+                             AutosaveLib::Logger::LEVEL_DEBUG);
+  AutosaveLib::Logger::println("(max)", AutosaveLib::Logger::LEVEL_DEBUG);
 }
 
 void Synth::handleModeSwitch_() {
@@ -62,33 +57,26 @@ void Synth::handleModeSwitch_() {
     return;
   }
 
-#ifdef DEBUG
-  Serial.println("Updating mode: " +
-                 String(hardware->read(hardware::CTRL_SWITCH_MODE)));
-#endif
+  AutosaveLib::Logger::debug(
+      "Updating mode: " + String(hardware->read(hardware::CTRL_SWITCH_MODE)));
 
   byte mode = (byte)hardware->read(hardware::CTRL_SWITCH_MODE);
 
   switch (mode) {
   case 0:
-#ifdef DEBUG
-    Serial.println("Changing to mono synth state");
-#endif
+    AutosaveLib::Logger::debug("Changing to mono synth state");
     changeState(new MonoSynthState());
     break;
   case 1:
-// @TODO: Implement polyphonic synth state
-#ifdef DEBUG
-    Serial.println("Polyphonic synth state not implemented yet!");
-#endif
+    // @TODO: Implement polyphonic synth state
+    AutosaveLib::Logger::warn("Polyphonic synth state not implemented yet!");
     break;
   case 2:
-// @TODO: Implement arpeggiator synth state
-#ifdef DEBUG
-    Serial.println("Arpeggiator synth state not implemented");
-#endif
+    // @TODO: Implement arpeggiator synth state
+    AutosaveLib::Logger::warn("Arpeggiator synth state not implemented");
     break;
   default:
+    AutosaveLib::Logger::warn("Invalid mode: " + String(mode));
     break;
   }
 }
