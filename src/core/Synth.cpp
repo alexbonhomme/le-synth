@@ -1,5 +1,6 @@
 #include "Synth.h"
 #include "lib/Logger.h"
+#include "states/MonoSynthState.h"
 
 namespace Autosave {
 

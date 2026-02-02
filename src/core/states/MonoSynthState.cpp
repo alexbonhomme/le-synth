@@ -1,27 +1,12 @@
-#include "State.h"
-#include "Synth.h"
 #include "synth_waveform.h"
+
+#include "MonoSynthState.h"
+#include "core/Synth.h"
+#include "core/Hardware.h"
 #include "lib/Logger.h"
 
 namespace Autosave {
 
-void State::process() {
-  // Attack
-  if (synth_->hardware->changed(hardware::CTRL_POT_ATTACK)) {
-    synth_->audio->updateAttack(
-        synth_->hardware->read(hardware::CTRL_POT_ATTACK));
-  }
-
-  // Decay/release
-  if (synth_->hardware->changed(hardware::CTRL_POT_RELEASE)) {
-    synth_->audio->updateRelease(
-        synth_->hardware->read(hardware::CTRL_POT_RELEASE));
-  }
-}
-
-/**
- * Mono synth state
- */
 void MonoSynthState::noteOn(byte note, byte velocity) {
   synth_->audio->noteOn(note, velocity, detune_);
 }

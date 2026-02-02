@@ -27,24 +27,14 @@ public:
   void updateRelease(float release);
 
 private:
-  // GUItool: begin automatically generated code
-  AudioSynthWaveform waveform1;
-  AudioSynthWaveform waveform2;
-  AudioSynthWaveform waveform3;
-  AudioMixer4 mixer1;
+  AudioSynthWaveform osc[7];
+  AudioMixer4 mixer[2];
+  AudioMixer4 mixer_master;
   AudioEffectEnvelope envelope;
   AudioEffectEnvelope envelope_filter;
   AudioSynthWaveformDc dc_signal;
   AudioOutputI2S i2s1;
-  AudioConnection patchCord1;
-  AudioConnection patchCord2;
-  AudioConnection patchCord3;
-  AudioConnection patchCord4;
-  AudioConnection patchCord5;
-  AudioConnection patchCord6;
-  AudioConnection patchCord7;
-  AudioConnection patchCord8;
-  // GUItool: end automatically generated code
+  AudioConnection patchCord[13];
 
   int current_waveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
 
@@ -58,6 +48,7 @@ private:
 
   int current_note = 0;
 
+  bool percussive_mode_ = false;
   int attack_time = 1;
   int release_time = 10;
 
