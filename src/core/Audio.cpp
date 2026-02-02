@@ -35,13 +35,13 @@ void Audio::begin() {
   // detailed information, see the MemoryAndCpuUsage example
   AudioMemory(20);
 
-  for (int i = 0; i < VOICES_NUMBER; i++) {
-    oscillators[i].begin(defaults::init_waveform);
-    oscillators[i].frequency(defaults::init_frequency);
-    oscillators[i].amplitude(defaults::init_amplitude);
+  for (int i = 0; i < audio_config::voices_number; i++) {
+    oscillators[i].begin(audio_config::init_waveform);
+    oscillators[i].frequency(audio_config::init_frequency);
+    oscillators[i].amplitude(audio_config::init_amplitude);
   }
 
-  for (int i = 0; i < VOICES_NUMBER; i++) {
+  for (int i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].attack(attack_time);
     envelopes[i].hold(0);
     envelopes[i].decay(0);
@@ -50,17 +50,17 @@ void Audio::begin() {
   }
 
   for (unsigned int i = 0; i < sizeof(mixers) / sizeof(mixers[0]); i++) {
-    mixers[i].gain(0, defaults::main_mix_gain);
-    mixers[i].gain(1, defaults::main_mix_gain);
-    mixers[i].gain(2, defaults::main_mix_gain);
-    mixers[i].gain(3, defaults::main_mix_gain);
+    mixers[i].gain(0, audio_config::main_mix_gain);
+    mixers[i].gain(1, audio_config::main_mix_gain);
+    mixers[i].gain(2, audio_config::main_mix_gain);
+    mixers[i].gain(3, audio_config::main_mix_gain);
   }
 
-  mixer_master.gain(0, defaults::master_mix_gain);
-  mixer_master.gain(1, defaults::master_mix_gain);
+  mixer_master.gain(0, audio_config::master_mix_gain);
+  mixer_master.gain(1, audio_config::master_mix_gain);
 
   // Configure DC signal for filter envelope (constant voltage source)
-  dc_signal.amplitude(defaults::filter_env_gain);
+  dc_signal.amplitude(audio_config::filter_env_gain);
 
   // Configure filter envelope with the same ADSR values as envelopes
   filter_envelope.attack(attack_time);
@@ -71,22 +71,22 @@ void Audio::begin() {
   filter_envelope.releaseNoteOn(0);
 }
 
-void Audio::noteOn(float sustain) {
-  for (int i = 0; i < VOICES_NUMBER; i++) {
-    envelopes[i].sustain(sustain);
-    envelopes[i].noteOn();
-  }
+void Audio::noteOn(byte index, float sustain, bool triggerFilterEnvelope) {
+  envelopes[index].sustain(sustain);
+  envelopes[index].noteOn();
 
-  filter_envelope.sustain(sustain * 0.75f);
-  filter_envelope.noteOn();
+  if (triggerFilterEnvelope) {
+    filter_envelope.sustain(sustain * 0.85f);
+    filter_envelope.noteOn();
+  }
 }
 
-void Audio::noteOff() {
-  for (int i = 0; i < VOICES_NUMBER; i++) {
-    envelopes[i].noteOff();
-  }
+void Audio::noteOff(byte index, bool triggerFilterEnvelope) {
+  envelopes[index].noteOff();
 
-  filter_envelope.noteOff();
+  if (triggerFilterEnvelope) {
+    filter_envelope.noteOff();
+  }
 }
 
 void Audio::updateOscillatorFrequency(byte index, float frequency) {
@@ -94,7 +94,7 @@ void Audio::updateOscillatorFrequency(byte index, float frequency) {
 }
 
 void Audio::updateAllOscillatorsFrequency(float frequency) {
-  for (int i = 0; i < VOICES_NUMBER; i++) {
+  for (int i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].frequency(frequency);
   }
 }
@@ -104,7 +104,7 @@ void Audio::updateOscillatorAmplitude(byte index, float amplitude) {
 }
 
 void Audio::updateAllOscillatorsAmplitude(float amplitude) {
-  for (int i = 0; i < VOICES_NUMBER; i++) {
+  for (int i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].amplitude(amplitude);
   }
 }
@@ -112,7 +112,7 @@ void Audio::updateAllOscillatorsAmplitude(float amplitude) {
 void Audio::updateOscillatorWaveform(byte index, byte waveform) {
   oscillators[index].begin(waveform);
 
-  float gain = defaults::main_mix_gain;
+  float gain = audio_config::main_mix_gain;
   if (waveform == WAVEFORM_BANDLIMIT_PULSE) {
     oscillators[index].pulseWidth(0.25);
 
@@ -120,11 +120,11 @@ void Audio::updateOscillatorWaveform(byte index, byte waveform) {
     gain = gain * 2.0f;
   }
 
-  mixers[index % VOICES_NUMBER].gain(index % 4, gain);
+  mixers[index % audio_config::voices_number].gain(index % 4, gain);
 }
 
 void Audio::updateAllOscillatorsWaveform(byte waveform) {
-  for (int i = 0; i < VOICES_NUMBER; i++) {
+  for (int i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(waveform);
   }
 }
@@ -132,11 +132,11 @@ void Audio::updateAllOscillatorsWaveform(byte waveform) {
 void Audio::updateEnvelopeMode(bool percussive_mode) {
   percussive_mode_ = percussive_mode;
 
-  int decay = percussive_mode_ ? release_time : 0;
+  float decay = percussive_mode_ ? release_time : 0.0f;
   float sustain = percussive_mode_ ? 0.0f : 1.0f;
-  int release = percussive_mode_ ? 0 : release_time;
+  float release = percussive_mode_ ? 0.0f : release_time;
 
-  for (int i = 0; i < VOICES_NUMBER; i++) {
+  for (int i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].decay(decay);
     envelopes[i].sustain(sustain);
     envelopes[i].release(release);
@@ -148,9 +148,9 @@ void Audio::updateEnvelopeMode(bool percussive_mode) {
 }
 
 void Audio::updateAttack(float attack) {
-  attack_time = attack * 149 + 1; // 1 to 150ms
+  attack_time = attack * 149.0f + 1.0f; // 1 to 150ms
 
-  for (int i = 0; i < VOICES_NUMBER; i++) {
+  for (int i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].attack(attack_time);
   }
 
@@ -158,16 +158,16 @@ void Audio::updateAttack(float attack) {
 }
 
 void Audio::updateRelease(float release) {
-  release_time = release * 598 + 2; // 2 to 600ms
+  release_time = release * 598.0f + 2.0f; // 2 to 600ms
 
   if (percussive_mode_) {
-    for (int i = 0; i < VOICES_NUMBER; i++) {
+    for (int i = 0; i < audio_config::voices_number; i++) {
       envelopes[i].decay(release_time);
     }
 
     filter_envelope.decay(release_time);
   } else {
-    for (int i = 0; i < VOICES_NUMBER; i++) {
+    for (int i = 0; i < audio_config::voices_number; i++) {
       envelopes[i].release(release_time);
     }
 
@@ -176,16 +176,14 @@ void Audio::updateRelease(float release) {
 }
 
 /**
- * @TODO: remove mod and apply detune of frequency
+
+ * Compute the frequency of the waveform based on the note.
  *
- * Compute the frequency of the waveform based on the note and mod input.
- *
- * The note input is the MIDI note number, and the mod input is from 0 to 1.
- *
- * @see https://vcvrack.com/manual/VoltageStandards#Pitch-and-Frequencies
+ * The note input is the MIDI note number.
  */
 float Audio::computeFrequencyFromNote(byte note) {
-  return 440.0f * powf(2.0f, ((float)note - 73.0f) * 0.08333333f); // 440.0 = A4
+  float A4 = 440.0f; // a' Kammerton (440 Hz)
+  return (A4 / 32.0f) * powf(2.0f, ((note - 9.0f) / 12.0f));
 }
 
 /**
@@ -193,6 +191,7 @@ float Audio::computeFrequencyFromNote(byte note) {
  * Compute the frequency of the waveform based on the mod and cv input.
  *
  * The mod input is should be from 0 to 1, and the cv input from 0 to 10.
+ * @see https://vcvrack.com/manual/VoltageStandards#Pitch-and-Frequencies
  */
 float Audio::computeFrequencyFromCV(float cv, float mod) {
   float offset = mod * 2.0f - 1.0f; // -1 to 1

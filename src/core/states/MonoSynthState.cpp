@@ -1,7 +1,7 @@
-#include "core/Audio.h"
-#include "synth_waveform.h"
-
 #include "MonoSynthState.h"
+
+#include "synth_waveform.h"
+#include "core/Audio.h"
 #include "core/Synth.h"
 #include "core/Hardware.h"
 #include "lib/Logger.h"
@@ -37,7 +37,9 @@ void MonoSynthState::noteOn(byte note, byte velocity) {
   synth_->audio->updateOscillatorFrequency(1, freq_2);
   synth_->audio->updateOscillatorFrequency(2, freq_sub);
 
-  synth_->audio->noteOn(sustain);
+  synth_->audio->noteOn(0, sustain, true);
+  synth_->audio->noteOn(1, sustain);
+  synth_->audio->noteOn(2, sustain);
 
   AudioInterrupts();
 }
@@ -45,32 +47,15 @@ void MonoSynthState::noteOn(byte note, byte velocity) {
 void MonoSynthState::noteOff(byte note, byte velocity) {
   AudioNoInterrupts();
 
-  synth_->audio->noteOff();
+  synth_->audio->noteOff(0, true);
+  synth_->audio->noteOff(1);
+  synth_->audio->noteOff(2);
 
   AudioInterrupts();
 }
 
 void MonoSynthState::process() {
   State::process();
-
-  // Button 1 changes the waveform type of the main oscillators
-  if (synth_->hardware->changed(hardware::CTRL_SWITCH_1)) {
-    byte waveform = (byte)synth_->hardware->read(hardware::CTRL_SWITCH_1);
-
-    AutosaveLib::Logger::debug("Updating waveform: " + String(waveform));
-
-    switch (waveform) {
-    case 0:
-      synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE);
-      break;
-    case 1:
-      synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_BANDLIMIT_SQUARE);
-      break;
-    default:
-      synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_BANDLIMIT_PULSE);
-      break;
-    }
-  }
 
   if (synth_->hardware->changed(hardware::CTRL_SWITCH_2)) {
     AutosaveLib::Logger::warn(

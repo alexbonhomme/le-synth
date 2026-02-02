@@ -4,11 +4,11 @@
 #include <Arduino.h>
 #include <Audio.h>
 
-#define VOICES_NUMBER 8
-
 namespace Autosave {
 
-namespace defaults {
+namespace audio_config {
+static constexpr byte voices_number = 8;
+
 static constexpr float init_frequency = 440.0f; // A4
 static constexpr short init_waveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
 static constexpr float init_amplitude = 0.0f;
@@ -17,7 +17,7 @@ static constexpr float main_mix_gain = 0.085f;
 static constexpr float master_mix_gain = 0.5f;
 
 static constexpr float filter_env_gain = 0.5f;
-} // namespace defaults
+} // namespace audio_config
 
 class Audio {
 public:
@@ -25,8 +25,8 @@ public:
 
   void begin();
 
-  void noteOn(float sustain);
-  void noteOff();
+  void noteOn(byte index, float sustain, bool triggerFilterEnvelope = false);
+  void noteOff(byte index, bool triggerFilterEnvelope = false);
 
   void updateEnvelopeMode(bool percussive_mode);
 
@@ -44,30 +44,18 @@ public:
   static float computeFrequencyFromCV(float cv, float mod);
 
 private:
-  AudioSynthWaveform oscillators[VOICES_NUMBER];
-  AudioEffectEnvelope envelopes[VOICES_NUMBER];
-  AudioMixer4 mixers[VOICES_NUMBER / 4];
+  AudioSynthWaveform oscillators[audio_config::voices_number];
+  AudioEffectEnvelope envelopes[audio_config::voices_number];
+  AudioMixer4 mixers[audio_config::voices_number / 4];
   AudioMixer4 mixer_master;
   AudioSynthWaveformDc dc_signal;
   AudioEffectEnvelope filter_envelope;
   AudioOutputI2S i2s1;
   AudioConnection patchCords[21];
 
-  int current_waveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
-
-  float freq = 440.0f;
-  float freq_2 = 440.0f;
-  float freq_sub = 220.0f;
-
-  float amplitude = 1.0f;
-  float amplitude_2 = 0.0f;
-  float amplitude_sub = 0.0f;
-
-  int current_note = 0;
-
   bool percussive_mode_ = false;
-  int attack_time = 1;
-  int release_time = 10;
+  float attack_time = 1.0f;
+  float release_time = 10.0f;
 };
 
 } // namespace Autosave

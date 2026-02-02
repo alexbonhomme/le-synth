@@ -1,6 +1,7 @@
 #include "Synth.h"
 #include "lib/Logger.h"
 #include "states/MonoSynthState.h"
+#include "states/PolySynthState.h"
 
 namespace Autosave {
 
@@ -53,32 +54,25 @@ void Synth::process() {
   AutosaveLib::Logger::println("(max)", AutosaveLib::Logger::LEVEL_DEBUG);
 }
 
+// @TODO: load state a starting
 void Synth::handleModeSwitch_() {
   // Handle mode switch
   if (!hardware->changed(hardware::CTRL_SWITCH_MODE)) {
     return;
   }
 
-  AutosaveLib::Logger::debug(
-      "Updating mode: " + String(hardware->read(hardware::CTRL_SWITCH_MODE)));
-
   byte mode = (byte)hardware->read(hardware::CTRL_SWITCH_MODE);
-
   switch (mode) {
   case 0:
     AutosaveLib::Logger::debug("Changing to mono synth state");
     changeState(new MonoSynthState());
     break;
   case 1:
-    // @TODO: Implement polyphonic synth state
-    AutosaveLib::Logger::warn("Polyphonic synth state not implemented yet!");
-    break;
-  case 2:
-    // @TODO: Implement arpeggiator synth state
-    AutosaveLib::Logger::warn("Arpeggiator synth state not implemented");
+    AutosaveLib::Logger::debug("Changing to polyphonic synth state");
+    changeState(new PolySynthState());
     break;
   default:
-    AutosaveLib::Logger::warn("Invalid mode: " + String(mode));
+    AutosaveLib::Logger::warn("Not implemented yet! Mode: " + String(mode));
     break;
   }
 }
