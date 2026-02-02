@@ -1,3 +1,4 @@
+#include "core/Audio.h"
 #include "synth_waveform.h"
 
 #include "MonoSynthState.h"
@@ -7,12 +8,46 @@
 
 namespace Autosave {
 
+void MonoSynthState::begin() {
+  detune_ = 0.0f;
+  current_note_ = 0;
+
+  AudioNoInterrupts();
+
+  // Kill all oscillators in case they were left on from a previous state
+  synth_->audio->updateAllOscillatorsAmplitude(0.0f);
+
+  // Setup main oscillator
+  synth_->audio->updateOscillatorAmplitude(0, 1.0f);
+
+  AudioInterrupts();
+}
+
 void MonoSynthState::noteOn(byte note, byte velocity) {
-  synth_->audio->noteOn(note, velocity, detune_);
+  current_note_ = note;
+  float sustain = (float)velocity / 127.0f;
+
+  float freq = Audio::computeFrequencyFromNote(current_note_);
+  float freq_2 = freq * detune_;
+  float freq_sub = freq / 2.0f;
+
+  AudioNoInterrupts();
+
+  synth_->audio->updateOscillatorFrequency(0, freq);
+  synth_->audio->updateOscillatorFrequency(1, freq_2);
+  synth_->audio->updateOscillatorFrequency(2, freq_sub);
+
+  synth_->audio->noteOn(sustain);
+
+  AudioInterrupts();
 }
 
 void MonoSynthState::noteOff(byte note, byte velocity) {
+  AudioNoInterrupts();
+
   synth_->audio->noteOff();
+
+  AudioInterrupts();
 }
 
 void MonoSynthState::process() {
@@ -26,13 +61,13 @@ void MonoSynthState::process() {
 
     switch (waveform) {
     case 0:
-      synth_->audio->updateWaveform(WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE);
+      synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE);
       break;
     case 1:
-      synth_->audio->updateWaveform(WAVEFORM_BANDLIMIT_SQUARE);
+      synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_BANDLIMIT_SQUARE);
       break;
     default:
-      synth_->audio->updateWaveform(WAVEFORM_BANDLIMIT_PULSE);
+      synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_BANDLIMIT_PULSE);
       break;
     }
   }
@@ -55,20 +90,33 @@ void MonoSynthState::process() {
 
   // Update the frequency of the second oscillator
   if (synth_->hardware->changed(hardware::CTRL_POT_1)) {
-    detune_ = synth_->hardware->read(hardware::CTRL_POT_1);
+    float pot_value = synth_->hardware->read(hardware::CTRL_POT_1);
 
-    synth_->audio->updateOsc2Frequency(detune_);
+    /*
+     * Convert [0 - 1] value to [0.5 - 1][1 - 2] for detune
+     *
+     * 0.5 - 1: 1 octave down
+     * 1 - 2: 1 octave up
+     */
+    detune_ = pot_value + 0.5f;
+    if (detune_ > 1.0f) {
+      detune_ = detune_ * 1.3333333333333333f;
+    }
+
+    float frequency = Audio::computeFrequencyFromNote(current_note_) * detune_;
+
+    synth_->audio->updateOscillatorFrequency(1, frequency);
   }
 
   // Update the amplitude of the second oscillator
   if (synth_->hardware->changed(hardware::CTRL_POT_2)) {
-    synth_->audio->updateOsc2Amplitude(
+    synth_->audio->updateOscillatorAmplitude(1,
         synth_->hardware->read(hardware::CTRL_POT_2));
   }
 
   // Update the amplitude of the sub oscillator
   if (synth_->hardware->changed(hardware::CTRL_POT_3)) {
-    synth_->audio->updateSubAmplitude(
+    synth_->audio->updateOscillatorAmplitude(2,
         synth_->hardware->read(hardware::CTRL_POT_3));
   }
 }

@@ -7,12 +7,12 @@ namespace Autosave {
 Synth::Synth() {
   instance_ = this;
 
-  state_ = new MonoSynthState();
-  state_->setSynth(this);
-
   hardware = new Hardware();
   audio = new Audio();
   midi = new Midi();
+
+  state_ = new MonoSynthState();
+  state_->setSynth(this);
 
   midi->setHandleNoteOn(&Synth::midiNoteOn);
   midi->setHandleNoteOff(&Synth::midiNoteOff);
@@ -25,6 +25,7 @@ void Synth::begin() {
   hardware->begin();
   audio->begin();
   midi->begin();
+  state_->begin();
 }
 
 void Synth::process() {
@@ -89,6 +90,7 @@ void Synth::changeState(State *state) {
 
   state_ = state;
   state_->setSynth(this);
+  state_->begin();
 }
 
 void Synth::midiNoteOn(byte channel, byte note, byte velocity) {

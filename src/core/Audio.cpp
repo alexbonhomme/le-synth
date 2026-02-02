@@ -6,14 +6,27 @@
 namespace Autosave {
 
 Audio::Audio()
-    : patchCord{
-          {osc[0], 0, mixer[0], 0},       {osc[1], 0, mixer[0], 1},
-          {osc[2], 0, mixer[0], 2},       {osc[3], 0, mixer[1], 0},
-          {osc[4], 0, mixer[1], 1},       {osc[5], 0, mixer[1], 2},
-          {osc[6], 0, mixer[1], 3},       {mixer[0], 0, mixer_master, 0},
-          {mixer[1], 0, mixer_master, 1}, {mixer_master, 0, envelope, 0},
-          {envelope, 0, i2s1, 1},         {dc_signal, 0, envelope_filter, 0},
-          {envelope_filter, 0, i2s1, 0}} {}
+    : patchCords{{oscillators[0], 0, envelopes[0], 0},
+                 {oscillators[1], 0, envelopes[1], 0},
+                 {oscillators[2], 0, envelopes[2], 0},
+                 {oscillators[3], 0, envelopes[3], 0},
+                 {oscillators[4], 0, envelopes[4], 0},
+                 {oscillators[5], 0, envelopes[5], 0},
+                 {oscillators[6], 0, envelopes[6], 0},
+                 {oscillators[7], 0, envelopes[7], 0},
+                 {envelopes[0], 0, mixers[0], 0},
+                 {envelopes[1], 0, mixers[0], 1},
+                 {envelopes[2], 0, mixers[0], 2},
+                 {envelopes[3], 0, mixers[0], 3},
+                 {envelopes[4], 0, mixers[1], 0},
+                 {envelopes[5], 0, mixers[1], 1},
+                 {envelopes[6], 0, mixers[1], 2},
+                 {envelopes[7], 0, mixers[1], 3},
+                 {mixers[0], 0, mixer_master, 0},
+                 {mixers[1], 0, mixer_master, 1},
+                 {mixer_master, 0, i2s1, 1},
+                 {dc_signal, 0, filter_envelope, 0},
+                 {filter_envelope, 0, i2s1, 0}} {}
 
 void Audio::begin() {
   AutosaveLib::Logger::info("Initializing Audio module");
@@ -22,168 +35,144 @@ void Audio::begin() {
   // detailed information, see the MemoryAndCpuUsage example
   AudioMemory(20);
 
-  // @TODO: init oscillators on states
-  osc[0].begin(current_waveform);
-  osc[1].begin(current_waveform);
-  osc[2].begin(WAVEFORM_TRIANGLE);
+  for (int i = 0; i < VOICES_NUMBER; i++) {
+    oscillators[i].begin(defaults::init_waveform);
+    oscillators[i].frequency(defaults::init_frequency);
+    oscillators[i].amplitude(defaults::init_amplitude);
+  }
 
-  osc[0].frequency(freq);
-  osc[1].frequency(freq_2);
-  osc[2].frequency(freq_sub);
+  for (int i = 0; i < VOICES_NUMBER; i++) {
+    envelopes[i].attack(attack_time);
+    envelopes[i].hold(0);
+    envelopes[i].decay(0);
+    envelopes[i].sustain(1.0);
+    envelopes[i].release(release_time);
+  }
 
-  osc[0].amplitude(amplitude);
-  osc[1].amplitude(amplitude_2);
-  osc[2].amplitude(amplitude_sub);
+  for (unsigned int i = 0; i < sizeof(mixers) / sizeof(mixers[0]); i++) {
+    mixers[i].gain(0, defaults::main_mix_gain);
+    mixers[i].gain(1, defaults::main_mix_gain);
+    mixers[i].gain(2, defaults::main_mix_gain);
+    mixers[i].gain(3, defaults::main_mix_gain);
+  }
 
-  mixer[0].gain(0, defaults::main_mix_gain);
-  mixer[0].gain(1, defaults::main_mix_gain);
-  mixer[0].gain(2, defaults::main_mix_gain);
+  mixer_master.gain(0, defaults::master_mix_gain);
+  mixer_master.gain(1, defaults::master_mix_gain);
 
-  mixer[1].gain(0, defaults::main_mix_gain);
-  mixer[1].gain(1, defaults::main_mix_gain);
-  mixer[1].gain(2, defaults::main_mix_gain);
-  mixer[1].gain(3, defaults::main_mix_gain);
-
-  // Configure DC signal for envelope2 (constant voltage source)
+  // Configure DC signal for filter envelope (constant voltage source)
   dc_signal.amplitude(defaults::filter_env_gain);
 
-  // Configure envelope1
-  envelope.attack(attack_time);
-  envelope.hold(0);
-  envelope.decay(0);
-  envelope.sustain(1.0);
-  envelope.release(release_time);
-  envelope.releaseNoteOn(0);
-
-  // Configure envelope2 with the same ADSR values as envelope1
-  envelope_filter.attack(attack_time);
-  envelope_filter.hold(0);
-  envelope_filter.decay(0);
-  envelope_filter.sustain(1.0);
-  envelope_filter.release(release_time);
-  envelope_filter.releaseNoteOn(0);
+  // Configure filter envelope with the same ADSR values as envelopes
+  filter_envelope.attack(attack_time);
+  filter_envelope.hold(0);
+  filter_envelope.decay(0);
+  filter_envelope.sustain(1.0);
+  filter_envelope.release(release_time);
+  filter_envelope.releaseNoteOn(0);
 }
 
-void Audio::noteOn(byte note, byte velocity, float detune) {
-  current_note = note;
-  float sustain = (float)velocity / 127.0f;
+void Audio::noteOn(float sustain) {
+  for (int i = 0; i < VOICES_NUMBER; i++) {
+    envelopes[i].sustain(sustain);
+    envelopes[i].noteOn();
+  }
 
-  // update main oscillator
-  freq = computeFrequencyFromNote(current_note, 0.0f);
-
-  // update other oscillators
-  freq_2 = computeFrequencyFromNote(current_note, detune);
-
-  // update sub oscillator
-  freq_sub = computeSubFrequency(freq, 2.0f);
-
-  AudioNoInterrupts();
-
-  osc[0].frequency(freq);
-  osc[1].frequency(freq_2);
-  osc[2].frequency(freq_sub);
-
-  envelope.sustain(sustain);
-  envelope_filter.sustain(sustain * 0.75f);
-
-  envelope.noteOn();
-  envelope_filter.noteOn();
-
-  AudioInterrupts();
+  filter_envelope.sustain(sustain * 0.75f);
+  filter_envelope.noteOn();
 }
 
 void Audio::noteOff() {
-  envelope.noteOff();
-  envelope_filter.noteOff();
-}
-
-void Audio::updateOsc2Frequency(float frequency) {
-  freq_2 = computeFrequencyFromNote(current_note, frequency);
-  osc[1].frequency(freq_2);
-}
-
-void Audio::updateOsc2Amplitude(float amplitude) {
-  osc[1].amplitude(amplitude);
-}
-
-void Audio::updateSubAmplitude(float amplitude) { osc[2].amplitude(amplitude); }
-
-void Audio::updateWaveform(int waveform) {
-  AutosaveLib::Logger::debug("Osc 1 & 2 waveform: " + String(waveform));
-
-  AudioNoInterrupts();
-
-  osc[0].begin(waveform);
-  osc[1].begin(waveform);
-  // waveform3.begin(waveform);
-
-  if (waveform == WAVEFORM_BANDLIMIT_PULSE) {
-    osc[0].pulseWidth(0.25);
-    osc[1].pulseWidth(0.25);
-    // waveform3.pulseWidth(0.25);
-
-    // Gain correction
-    mixer[0].gain(0, defaults::main_mix_gain * 2.0f);
-    mixer[0].gain(1, defaults::main_mix_gain * 2.0f);
-    // mixer1.gain(2, defaults::main_mix_gain * 2.0f);
-  } else {
-    mixer[0].gain(0, defaults::main_mix_gain);
-    mixer[0].gain(1, defaults::main_mix_gain);
-    // mixer1.gain(2, defaults::main_mix_gain);
+  for (int i = 0; i < VOICES_NUMBER; i++) {
+    envelopes[i].noteOff();
   }
 
-  AudioInterrupts();
+  filter_envelope.noteOff();
+}
+
+void Audio::updateOscillatorFrequency(byte index, float frequency) {
+  oscillators[index].frequency(frequency);
+}
+
+void Audio::updateAllOscillatorsFrequency(float frequency) {
+  for (int i = 0; i < VOICES_NUMBER; i++) {
+    oscillators[i].frequency(frequency);
+  }
+}
+
+void Audio::updateOscillatorAmplitude(byte index, float amplitude) {
+  oscillators[index].amplitude(amplitude);
+}
+
+void Audio::updateAllOscillatorsAmplitude(float amplitude) {
+  for (int i = 0; i < VOICES_NUMBER; i++) {
+    oscillators[i].amplitude(amplitude);
+  }
+}
+
+void Audio::updateOscillatorWaveform(byte index, byte waveform) {
+  oscillators[index].begin(waveform);
+
+  float gain = defaults::main_mix_gain;
+  if (waveform == WAVEFORM_BANDLIMIT_PULSE) {
+    oscillators[index].pulseWidth(0.25);
+
+    // Gain correction for pulse waveform
+    gain = gain * 2.0f;
+  }
+
+  mixers[index % VOICES_NUMBER].gain(index % 4, gain);
+}
+
+void Audio::updateAllOscillatorsWaveform(byte waveform) {
+  for (int i = 0; i < VOICES_NUMBER; i++) {
+    oscillators[i].begin(waveform);
+  }
 }
 
 void Audio::updateEnvelopeMode(bool percussive_mode) {
   percussive_mode_ = percussive_mode;
 
-  if (percussive_mode_) {
-    envelope.decay(release_time);
-    envelope.sustain(0.0f);
-    envelope.release(0);
-    envelope_filter.decay(release_time);
-    envelope_filter.sustain(0.0f);
-    envelope_filter.release(0);
-  } else {
-    envelope.decay(0);
-    envelope.sustain(1.0f);
-    envelope.release(release_time);
-    envelope_filter.decay(0);
-    envelope_filter.sustain(1.0f);
-    envelope_filter.release(release_time);
+  int decay = percussive_mode_ ? release_time : 0;
+  float sustain = percussive_mode_ ? 0.0f : 1.0f;
+  int release = percussive_mode_ ? 0 : release_time;
+
+  for (int i = 0; i < VOICES_NUMBER; i++) {
+    envelopes[i].decay(decay);
+    envelopes[i].sustain(sustain);
+    envelopes[i].release(release);
   }
+
+  filter_envelope.decay(decay);
+  filter_envelope.sustain(sustain * 0.75f);
+  filter_envelope.release(release);
 }
 
 void Audio::updateAttack(float attack) {
   attack_time = attack * 149 + 1; // 1 to 150ms
 
-  AudioNoInterrupts();
+  for (int i = 0; i < VOICES_NUMBER; i++) {
+    envelopes[i].attack(attack_time);
+  }
 
-  envelope.attack(attack_time);
-  envelope_filter.attack(attack_time);
-
-  AudioInterrupts();
+  filter_envelope.attack(attack_time);
 }
 
 void Audio::updateRelease(float release) {
   release_time = release * 598 + 2; // 2 to 600ms
 
-  AudioNoInterrupts();
-
   if (percussive_mode_) {
-    envelope.decay(release_time);
-    envelope_filter.decay(release_time);
+    for (int i = 0; i < VOICES_NUMBER; i++) {
+      envelopes[i].decay(release_time);
+    }
+
+    filter_envelope.decay(release_time);
   } else {
-    envelope.release(release_time);
-    envelope_filter.release(release_time);
+    for (int i = 0; i < VOICES_NUMBER; i++) {
+      envelopes[i].release(release_time);
+    }
+
+    filter_envelope.release(release_time);
   }
-
-  AudioInterrupts();
-}
-
-float Audio::computeSubFrequency(float freq, float octave_divider) {
-  return octave_divider > 0 ? freq / octave_divider : 0.0f;
 }
 
 /**
@@ -195,11 +184,8 @@ float Audio::computeSubFrequency(float freq, float octave_divider) {
  *
  * @see https://vcvrack.com/manual/VoltageStandards#Pitch-and-Frequencies
  */
-float Audio::computeFrequencyFromNote(byte note, float mod) {
-  float offset = mod * 16.0f - 8.0f; // -8 to 8
-  float note_offset = note + offset;
-
-  return 440.0f * powf(2.0f, (note_offset - 73.0f) * 0.08333333f); // 440.0 = A4
+float Audio::computeFrequencyFromNote(byte note) {
+  return 440.0f * powf(2.0f, ((float)note - 73.0f) * 0.08333333f); // 440.0 = A4
 }
 
 /**

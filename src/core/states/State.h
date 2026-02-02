@@ -15,6 +15,7 @@ public:
 
   void setSynth(Synth *synth) { this->synth_ = synth; }
 
+  virtual void begin() = 0;
   virtual void process();
   virtual void noteOn(byte note, byte velocity) = 0;
   virtual void noteOff(byte note, byte velocity) = 0;
