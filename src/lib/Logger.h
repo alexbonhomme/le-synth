@@ -1,3 +1,6 @@
+#ifndef AUTOSAVE_LOGGER_H
+#define AUTOSAVE_LOGGER_H
+
 #include <Arduino.h>
 
 namespace AutosaveLib {
@@ -63,3 +66,5 @@ public:
 };
 
 } // namespace AutosaveLib
+
+#endif

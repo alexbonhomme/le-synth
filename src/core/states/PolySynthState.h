@@ -12,7 +12,7 @@ class PolySynthState : public State {
 private:
   float detune_ = 0.0f;
 
-  byte current_notes_[audio_config::voices_number];
+  byte current_notes_[audio_config::voices_number] = {0};
   byte note_count_ = 0;
 
 public:

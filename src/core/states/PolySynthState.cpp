@@ -8,11 +8,7 @@
 namespace Autosave {
 
 void PolySynthState::begin() {
-  note_count_ = 0;
-
-  for (int i = 0; i < audio_config::voices_number; i++) {
-    current_notes_[i] = 0;
-  }
+  AutosaveLib::Logger::debug("PolySynthState::begin");
 
   AudioNoInterrupts();
 
@@ -26,6 +22,8 @@ void PolySynthState::noteOn(byte note, byte velocity) {
   if (note_count_ >= audio_config::voices_number) {
     return;
   }
+
+  AutosaveLib::Logger::debug("PolySynthState::noteOn: " + String(note) + " note_count: " + String(note_count_));
 
   byte index = 0;
 
@@ -43,11 +41,11 @@ void PolySynthState::noteOn(byte note, byte velocity) {
 
   float sustain = (float)velocity / 127.0f;
   float freq = Audio::computeFrequencyFromNote(note);
-  float normalized_gain = audio_config::master_gain / note_count_;
+  float normalized_gain = 1.0f / note_count_;
 
   AudioNoInterrupts();
 
-  synth_->audio->updateMasterGain(normalized_gain);
+  synth_->audio->updateMasterGain(normalized_gain * audio_config::master_gain);
   synth_->audio->updateOscillatorFrequency(index, freq);
   synth_->audio->updateOscillatorAmplitude(index, 1.0f);
 
@@ -57,6 +55,8 @@ void PolySynthState::noteOn(byte note, byte velocity) {
 }
 
 void PolySynthState::noteOff(byte note, byte velocity) {
+  AutosaveLib::Logger::debug("PolySynthState::noteOff: " + String(note) + " note_count: " + String(note_count_));
+
   if (note_count_ <= 0 || note_count_ >= audio_config::voices_number) {
     return;
   }
@@ -72,14 +72,19 @@ void PolySynthState::noteOff(byte note, byte velocity) {
     index++;
   }
 
+  // Note not found
+  if (index >= audio_config::voices_number) {
+    return;
+  }
+
   current_notes_[index] = 0;
   note_count_--;
 
-  float normalized_gain = note_count_ > 0 ? audio_config::master_gain / note_count_ : audio_config::master_gain;
+  float normalized_gain = note_count_ > 0 ? 1.0f / note_count_ : 1.0f;
 
   AudioNoInterrupts();
 
-  synth_->audio->updateMasterGain(normalized_gain);
+  synth_->audio->updateMasterGain(normalized_gain * audio_config::master_gain);
   synth_->audio->updateOscillatorAmplitude(index, 0.0f);
 
   synth_->audio->noteOff(index, note_count_ <= 0);

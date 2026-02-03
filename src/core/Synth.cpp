@@ -20,7 +20,7 @@ Synth::Synth() {
 }
 
 void Synth::begin() {
-  AutosaveLib::Logger::begin(AutosaveLib::Logger::LEVEL_INFO);
+  AutosaveLib::Logger::begin(AutosaveLib::Logger::LEVEL_DEBUG);
   AutosaveLib::Logger::info("Initializing Synth module");
 
   hardware->begin();
@@ -43,9 +43,9 @@ void Synth::process() {
 
   state_->process();
 
-#ifdef DEBUG
-  debugAudioUsage();
-#endif
+// #ifdef DEBUG
+//   debugAudioUsage();
+// #endif
 }
 
 void Synth::updateMode() {
@@ -110,7 +110,7 @@ float fixMidiNote(byte note) {
 }
 
 void Synth::midiNoteOn(byte channel, byte note, byte velocity) {
-  if (instance_ == nullptr) {
+  if (instance_ == nullptr || instance_->state_ == nullptr) {
     return;
   }
 
@@ -118,7 +118,7 @@ void Synth::midiNoteOn(byte channel, byte note, byte velocity) {
 }
 
 void Synth::midiNoteOff(byte channel, byte note, byte velocity) {
-  if (instance_ == nullptr) {
+  if (instance_ == nullptr || instance_->state_ == nullptr) {
     return;
   }
 

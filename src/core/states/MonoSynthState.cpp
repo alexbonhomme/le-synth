@@ -4,13 +4,11 @@
 #include "core/Hardware.h"
 #include "core/Synth.h"
 #include "lib/Logger.h"
-#include "synth_waveform.h"
 
 namespace Autosave {
 
 void MonoSynthState::begin() {
-  detune_ = 0.0f;
-  current_note_ = 0;
+  AutosaveLib::Logger::debug("MonoSynthState::begin");
 
   AudioNoInterrupts();
 
@@ -25,13 +23,14 @@ void MonoSynthState::begin() {
   synth_->audio->updateOscillatorAmplitude(
       2, synth_->hardware->read(hardware::CTRL_POT_3));
 
-  // Reset master gain
-  synth_->audio->updateMasterGain(audio_config::master_gain);
+  synth_->audio->updateMasterGain(audio_config::master_gain / 2.0f);
 
   AudioInterrupts();
 }
 
 void MonoSynthState::noteOn(byte note, byte velocity) {
+  AutosaveLib::Logger::debug("MonoSynthState::noteOn: " + String(note));
+
   current_note_ = note;
   float sustain = (float)velocity / 127.0f;
 
@@ -53,6 +52,8 @@ void MonoSynthState::noteOn(byte note, byte velocity) {
 }
 
 void MonoSynthState::noteOff(byte note, byte velocity) {
+  AutosaveLib::Logger::debug("MonoSynthState::noteOff: " + String(note));
+
   AudioNoInterrupts();
 
   synth_->audio->noteOff(0, true);

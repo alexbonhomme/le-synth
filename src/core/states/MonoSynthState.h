@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 #include "State.h"
-
+#include "lib/Logger.h"
 namespace Autosave {
 
 class MonoSynthState : public State {

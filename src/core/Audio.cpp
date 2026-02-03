@@ -24,8 +24,8 @@ Audio::Audio()
                  {envelopes[7], 0, mixers[1], 3},
                  {mixers[0], 0, mixer_master, 0},
                  {mixers[1], 0, mixer_master, 1},
-                 {amplifier_master, 0, mixer_master, 0},
-                 {mixer_master, 0, i2s1, 1},
+                 {mixer_master, 0, amplifier_master, 0},
+                 {amplifier_master, 0, i2s1, 1},
                  {dc_signal, 0, filter_envelope, 0},
                  {filter_envelope, 0, i2s1, 0}} {}
 
@@ -51,14 +51,14 @@ void Audio::begin() {
   }
 
   for (unsigned int i = 0; i < sizeof(mixers) / sizeof(mixers[0]); i++) {
-    mixers[i].gain(0, audio_config::main_mix_gain);
-    mixers[i].gain(1, audio_config::main_mix_gain);
-    mixers[i].gain(2, audio_config::main_mix_gain);
-    mixers[i].gain(3, audio_config::main_mix_gain);
+    mixers[i].gain(0, audio_config::osc_mix_gain);
+    mixers[i].gain(1, audio_config::osc_mix_gain);
+    mixers[i].gain(2, audio_config::osc_mix_gain);
+    mixers[i].gain(3, audio_config::osc_mix_gain);
   }
 
-  mixer_master.gain(0, audio_config::main_mix_gain);
-  mixer_master.gain(1, audio_config::main_mix_gain);
+  mixer_master.gain(0, 0.5f);
+  mixer_master.gain(1, 0.5f);
 
   amplifier_master.gain(audio_config::master_gain);
 
@@ -93,6 +93,8 @@ void Audio::noteOff(byte index, bool triggerFilterEnvelope) {
 }
 
 void Audio::noteOffAll() {
+  AutosaveLib::Logger::debug("Audio::noteOffAll");
+
   for (int i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].noteOff();
   }
@@ -123,13 +125,13 @@ void Audio::updateAllOscillatorsAmplitude(float amplitude) {
 void Audio::updateOscillatorWaveform(byte index, byte waveform) {
   oscillators[index].begin(waveform);
 
-  float gain = audio_config::main_mix_gain;
-  if (waveform == WAVEFORM_BANDLIMIT_PULSE) {
-    oscillators[index].pulseWidth(0.25);
+  float gain = audio_config::osc_mix_gain;
+  // if (waveform == WAVEFORM_BANDLIMIT_PULSE) {
+  //   oscillators[index].pulseWidth(0.25);
 
-    // Gain correction for pulse waveform
-    gain = gain * 2.0f;
-  }
+  //   // Gain correction for pulse waveform
+  //   gain = gain * 2.0f;
+  // }
 
   mixers[index % audio_config::voices_number].gain(index % 4, gain);
 }
