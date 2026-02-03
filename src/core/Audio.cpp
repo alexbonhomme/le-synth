@@ -24,6 +24,7 @@ Audio::Audio()
                  {envelopes[7], 0, mixers[1], 3},
                  {mixers[0], 0, mixer_master, 0},
                  {mixers[1], 0, mixer_master, 1},
+                 {amplifier_master, 0, mixer_master, 0},
                  {mixer_master, 0, i2s1, 1},
                  {dc_signal, 0, filter_envelope, 0},
                  {filter_envelope, 0, i2s1, 0}} {}
@@ -56,8 +57,10 @@ void Audio::begin() {
     mixers[i].gain(3, audio_config::main_mix_gain);
   }
 
-  mixer_master.gain(0, audio_config::master_mix_gain);
-  mixer_master.gain(1, audio_config::master_mix_gain);
+  mixer_master.gain(0, audio_config::main_mix_gain);
+  mixer_master.gain(1, audio_config::main_mix_gain);
+
+  amplifier_master.gain(audio_config::master_gain);
 
   // Configure DC signal for filter envelope (constant voltage source)
   dc_signal.amplitude(audio_config::filter_env_gain);
@@ -87,6 +90,14 @@ void Audio::noteOff(byte index, bool triggerFilterEnvelope) {
   if (triggerFilterEnvelope) {
     filter_envelope.noteOff();
   }
+}
+
+void Audio::noteOffAll() {
+  for (int i = 0; i < audio_config::voices_number; i++) {
+    envelopes[i].noteOff();
+  }
+
+  filter_envelope.noteOff();
 }
 
 void Audio::updateOscillatorFrequency(byte index, float frequency) {
@@ -175,15 +186,16 @@ void Audio::updateRelease(float release) {
   }
 }
 
-/**
-
- * Compute the frequency of the waveform based on the note.
- *
- * The note input is the MIDI note number.
- */
 float Audio::computeFrequencyFromNote(byte note) {
-  float A4 = 440.0f; // a' Kammerton (440 Hz)
-  return (A4 / 32.0f) * powf(2.0f, ((note - 9.0f) / 12.0f));
+  if (note < 0) {
+    return 0.0f;
+  }
+
+  if (note > 127) {
+    note = 127;
+  }
+
+  return audio_config::midi_note_to_frequency[note];
 }
 
 /**
@@ -193,17 +205,14 @@ float Audio::computeFrequencyFromNote(byte note) {
  * The mod input is should be from 0 to 1, and the cv input from 0 to 10.
  * @see https://vcvrack.com/manual/VoltageStandards#Pitch-and-Frequencies
  */
-float Audio::computeFrequencyFromCV(float cv, float mod) {
-  float offset = mod * 2.0f - 1.0f; // -1 to 1
-  float cv_offset = cv + offset;
-
-  if (cv_offset < 0) {
-    cv_offset = 0.0f;
-  } else if (cv_offset > 10) {
-    cv_offset = 10.0f;
+float Audio::computeFrequencyFromCV(float cv) {
+  if (cv < 0) {
+    cv = 0.0f;
+  } else if (cv > 10) {
+    cv = 10.0f;
   }
 
-  return 32.7032f * powf(2.0f, cv_offset); // f0 = C0 = 32.7032
+  return 32.7032f * powf(2.0f, cv); // f0 = C0 = 32.7032
 }
 
 } // namespace Autosave

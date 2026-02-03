@@ -27,16 +27,46 @@ void Synth::begin() {
   audio->begin();
   midi->begin();
   state_->begin();
+
+  // Load the initial mode from the hardware
+  updateMode();
 }
 
 void Synth::process() {
   midi->read();
   hardware->update();
 
-  handleModeSwitch_();
+  // Handle mode switch
+  if (hardware->changed(hardware::CTRL_SWITCH_MODE)) {
+    updateMode();
+  }
 
   state_->process();
 
+#ifdef DEBUG
+  debugAudioUsage();
+#endif
+}
+
+void Synth::updateMode() {
+  byte mode = (byte)hardware->read(hardware::CTRL_SWITCH_MODE);
+
+  switch (mode) {
+  case 0:
+    AutosaveLib::Logger::info("Initializing Monophonic synth state");
+    changeState(new MonoSynthState());
+    return;
+  case 1:
+    AutosaveLib::Logger::info("Initializing Polyphonic synth state");
+    changeState(new PolySynthState());
+    return;
+  default:
+    AutosaveLib::Logger::warn("Not implemented yet! Mode: " + String(mode));
+    return;
+  }
+}
+
+void Synth::debugAudioUsage() {
   AutosaveLib::Logger::print("Processor: ", AutosaveLib::Logger::LEVEL_DEBUG);
   AutosaveLib::Logger::print(AudioProcessorUsage(),
                              AutosaveLib::Logger::LEVEL_DEBUG);
@@ -54,28 +84,9 @@ void Synth::process() {
   AutosaveLib::Logger::println("(max)", AutosaveLib::Logger::LEVEL_DEBUG);
 }
 
-// @TODO: load state a starting
-void Synth::handleModeSwitch_() {
-  // Handle mode switch
-  if (!hardware->changed(hardware::CTRL_SWITCH_MODE)) {
-    return;
-  }
-
-  byte mode = (byte)hardware->read(hardware::CTRL_SWITCH_MODE);
-  switch (mode) {
-  case 0:
-    AutosaveLib::Logger::debug("Changing to mono synth state");
-    changeState(new MonoSynthState());
-    break;
-  case 1:
-    AutosaveLib::Logger::debug("Changing to polyphonic synth state");
-    changeState(new PolySynthState());
-    break;
-  default:
-    AutosaveLib::Logger::warn("Not implemented yet! Mode: " + String(mode));
-    break;
-  }
-}
+/***
+ * Static callbacks
+ ***/
 
 void Synth::changeState(State *state) {
   if (state_ != nullptr) {
@@ -87,12 +98,23 @@ void Synth::changeState(State *state) {
   state_->begin();
 }
 
+float fixMidiNote(byte note) {
+  // MIDI libray seems to add one octave to the note number for no reason
+  note = note - 12;
+
+  if (note < 0) {
+    return 0;
+  }
+
+  return note;
+}
+
 void Synth::midiNoteOn(byte channel, byte note, byte velocity) {
   if (instance_ == nullptr) {
     return;
   }
 
-  instance_->state_->noteOn(note, velocity);
+  instance_->state_->noteOn(fixMidiNote(note), velocity);
 }
 
 void Synth::midiNoteOff(byte channel, byte note, byte velocity) {
@@ -100,7 +122,7 @@ void Synth::midiNoteOff(byte channel, byte note, byte velocity) {
     return;
   }
 
-  instance_->state_->noteOff(note, velocity);
+  instance_->state_->noteOff(fixMidiNote(note), velocity);
 }
 
 } // namespace Autosave

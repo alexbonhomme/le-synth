@@ -16,7 +16,8 @@ void PolySynthState::begin() {
 
   AudioNoInterrupts();
 
-  synth_->audio->updateAllOscillatorsAmplitude(1.0f);
+  synth_->audio->noteOffAll();
+  synth_->audio->updateAllOscillatorsAmplitude(0.0f);
 
   AudioInterrupts();
 }
@@ -42,21 +43,21 @@ void PolySynthState::noteOn(byte note, byte velocity) {
 
   float sustain = (float)velocity / 127.0f;
   float freq = Audio::computeFrequencyFromNote(note);
+  float normalized_gain = audio_config::master_gain / note_count_;
 
   AudioNoInterrupts();
 
+  synth_->audio->updateMasterGain(normalized_gain);
   synth_->audio->updateOscillatorFrequency(index, freq);
-  synth_->audio->noteOn(index, sustain, note_count_ == 1);
+  synth_->audio->updateOscillatorAmplitude(index, 1.0f);
 
-  AutosaveLib::Logger::debug("Note on: " + String(note) +
-                             " index: " + String(index));
-  AutosaveLib::Logger::debug("Note count: " + String(note_count_));
+  synth_->audio->noteOn(index, sustain, note_count_ == 1);
 
   AudioInterrupts();
 }
 
 void PolySynthState::noteOff(byte note, byte velocity) {
-  if (note_count_ <= 0) {
+  if (note_count_ <= 0 || note_count_ >= audio_config::voices_number) {
     return;
   }
 
@@ -71,14 +72,15 @@ void PolySynthState::noteOff(byte note, byte velocity) {
     index++;
   }
 
-  if (index == audio_config::voices_number) {
-    return;
-  }
-
   current_notes_[index] = 0;
   note_count_--;
 
+  float normalized_gain = note_count_ > 0 ? audio_config::master_gain / note_count_ : audio_config::master_gain;
+
   AudioNoInterrupts();
+
+  synth_->audio->updateMasterGain(normalized_gain);
+  synth_->audio->updateOscillatorAmplitude(index, 0.0f);
 
   synth_->audio->noteOff(index, note_count_ <= 0);
 

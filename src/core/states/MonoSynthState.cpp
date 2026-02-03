@@ -1,10 +1,10 @@
 #include "MonoSynthState.h"
 
-#include "synth_waveform.h"
 #include "core/Audio.h"
-#include "core/Synth.h"
 #include "core/Hardware.h"
+#include "core/Synth.h"
 #include "lib/Logger.h"
+#include "synth_waveform.h"
 
 namespace Autosave {
 
@@ -15,10 +15,18 @@ void MonoSynthState::begin() {
   AudioNoInterrupts();
 
   // Kill all oscillators in case they were left on from a previous state
+  synth_->audio->noteOffAll();
   synth_->audio->updateAllOscillatorsAmplitude(0.0f);
 
-  // Setup main oscillator
+  // Setup oscillators
   synth_->audio->updateOscillatorAmplitude(0, 1.0f);
+  synth_->audio->updateOscillatorAmplitude(
+      1, synth_->hardware->read(hardware::CTRL_POT_2));
+  synth_->audio->updateOscillatorAmplitude(
+      2, synth_->hardware->read(hardware::CTRL_POT_3));
+
+  // Reset master gain
+  synth_->audio->updateMasterGain(audio_config::master_gain);
 
   AudioInterrupts();
 }
@@ -95,14 +103,14 @@ void MonoSynthState::process() {
 
   // Update the amplitude of the second oscillator
   if (synth_->hardware->changed(hardware::CTRL_POT_2)) {
-    synth_->audio->updateOscillatorAmplitude(1,
-        synth_->hardware->read(hardware::CTRL_POT_2));
+    synth_->audio->updateOscillatorAmplitude(
+        1, synth_->hardware->read(hardware::CTRL_POT_2));
   }
 
   // Update the amplitude of the sub oscillator
   if (synth_->hardware->changed(hardware::CTRL_POT_3)) {
-    synth_->audio->updateOscillatorAmplitude(2,
-        synth_->hardware->read(hardware::CTRL_POT_3));
+    synth_->audio->updateOscillatorAmplitude(
+        2, synth_->hardware->read(hardware::CTRL_POT_3));
   }
 }
 
