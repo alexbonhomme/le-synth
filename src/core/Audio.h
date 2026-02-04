@@ -1,9 +1,12 @@
 #ifndef AUTOSAVE_AUDIO_H
 #define AUTOSAVE_AUDIO_H
 
-#include "lib/Logger.h"
 #include <Arduino.h>
 #include <Audio.h>
+#include <cmath>
+
+#include "lib/Logger.h"
+
 namespace Autosave {
 
 namespace audio_config {
@@ -17,7 +20,7 @@ static constexpr short init_waveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
 static constexpr float init_amplitude = 0.0f;
 
 static constexpr float osc_mix_gain = 0.25f;
-static constexpr float master_gain = 1.0f;
+static constexpr float master_gain = 0.48f;
 
 static constexpr float filter_env_gain = 0.5f;
 
@@ -77,7 +80,14 @@ public:
   void updateAttack(float attack);
   void updateRelease(float release);
 
-  void updateMasterGain(float gain) { amplifier_master.gain(gain); }
+  void normalizeMasterGain(byte oscillators_count) {
+    float gain_correction = 3.0f / std::log2f(oscillators_count + 10.0f);
+    float normalized_gain = audio_config::master_gain * gain_correction;
+
+    AutosaveLib::Logger::debug("Normalized gain: " + String(normalized_gain));
+
+    amplifier_master.gain(normalized_gain);
+  }
 
   static float computeFrequencyFromNote(byte note);
   static float computeFrequencyFromCV(float cv);

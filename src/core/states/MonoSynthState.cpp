@@ -24,7 +24,7 @@ void MonoSynthState::begin() {
   synth_->audio->updateOscillatorAmplitude(
       2, synth_->hardware->read(hardware::CTRL_POT_3));
 
-  synth_->audio->updateMasterGain(audio_config::master_gain * 0.5f);
+  synth_->audio->normalizeMasterGain(3);
 
   AudioInterrupts();
 }

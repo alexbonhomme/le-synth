@@ -40,11 +40,10 @@ void PolySynthState::noteOn(byte note, byte velocity) {
 
   float sustain = (float)velocity / 127.0f;
   float freq = Audio::computeFrequencyFromNote(note);
-  float normalized_gain = 1.0f / note_count_;
 
   AudioNoInterrupts();
 
-  synth_->audio->updateMasterGain(normalized_gain * audio_config::master_gain);
+  synth_->audio->normalizeMasterGain(note_count_);
   synth_->audio->updateOscillatorFrequency(index, freq);
   synth_->audio->updateOscillatorAmplitude(index, 1.0f);
 
@@ -77,11 +76,9 @@ void PolySynthState::noteOff(byte note, byte velocity) {
   current_notes_[index] = 0;
   note_count_--;
 
-  float normalized_gain = note_count_ > 0 ? 1.0f / note_count_ : 1.0f;
-
   AudioNoInterrupts();
 
-  synth_->audio->updateMasterGain(normalized_gain * audio_config::master_gain);
+  synth_->audio->normalizeMasterGain(note_count_);
   synth_->audio->updateOscillatorAmplitude(index, 0.0f);
 
   synth_->audio->noteOff(index, note_count_ <= 0);
