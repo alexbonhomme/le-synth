@@ -123,8 +123,6 @@ void Midi::saveChannelToEeprom(byte channel) {
   EEPROM.write(midi_config::EEPROM_ADDR_CHANNEL, channel);
 }
 
-
-
 void Midi::setChannel(byte channel) {
   if (channel < 1 || channel > 16) {
     return;
@@ -138,8 +136,8 @@ void Midi::setChannel(byte channel) {
 }
 
 void Midi::read() {
-  usbMIDI.read();
-  MIDI.read();
+  usbMIDI.read(channel_);
+  MIDI.read(channel_);
 }
 
 } // namespace Autosave
