@@ -6,7 +6,15 @@
 namespace Autosave {
 
 Audio::Audio()
-    : patchCords{{oscillators[0], 0, envelopes[0], 0},
+    : patchCords{{lfo, 0, oscillators[0], 0},
+                 {lfo, 0, oscillators[1], 0},
+                 {lfo, 0, oscillators[2], 0},
+                 {lfo, 0, oscillators[3], 0},
+                 {lfo, 0, oscillators[4], 0},
+                 {lfo, 0, oscillators[5], 0},
+                 {lfo, 0, oscillators[6], 0},
+                 {lfo, 0, oscillators[7], 0},
+                 {oscillators[0], 0, envelopes[0], 0},
                  {oscillators[1], 0, envelopes[1], 0},
                  {oscillators[2], 0, envelopes[2], 0},
                  {oscillators[3], 0, envelopes[3], 0},
@@ -36,13 +44,17 @@ void Audio::begin() {
   // detailed information, see the MemoryAndCpuUsage example
   AudioMemory(20);
 
-  for (int i = 0; i < audio_config::voices_number; i++) {
+  // Configure LFO
+  lfo.frequency(audio_config::init_lfo_frequency);
+  lfo.amplitude(audio_config::init_lfo_amplitude);
+
+  for (byte i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(audio_config::init_waveform);
     oscillators[i].frequency(audio_config::init_frequency);
     oscillators[i].amplitude(audio_config::init_amplitude);
   }
 
-  for (int i = 0; i < audio_config::voices_number; i++) {
+  for (byte i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].attack(attack_time);
     envelopes[i].hold(0);
     envelopes[i].decay(0);
@@ -50,13 +62,12 @@ void Audio::begin() {
     envelopes[i].release(release_time);
   }
 
-  for (unsigned int i = 0; i < sizeof(mixers) / sizeof(mixers[0]); i++) {
+  for (byte i = 0; i < 2; i++) {
     mixers[i].gain(0, audio_config::osc_mix_gain);
     mixers[i].gain(1, audio_config::osc_mix_gain);
     mixers[i].gain(2, audio_config::osc_mix_gain);
     mixers[i].gain(3, audio_config::osc_mix_gain);
   }
-
   mixer_master.gain(0, 0.5f);
   mixer_master.gain(1, 0.5f);
 
@@ -93,13 +104,19 @@ void Audio::noteOff(byte index, bool triggerFilterEnvelope) {
 }
 
 void Audio::noteOffAll() {
-  AutosaveLib::Logger::debug("Audio::noteOffAll");
-
-  for (int i = 0; i < audio_config::voices_number; i++) {
+  for (byte i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].noteOff();
   }
 
   filter_envelope.noteOff();
+}
+
+void Audio::updateLFOFrequency(float frequency) {
+  lfo.frequency(frequency);
+}
+
+void Audio::updateLFOAmplitude(float amplitude) {
+  lfo.amplitude(amplitude);
 }
 
 void Audio::updateOscillatorFrequency(byte index, float frequency) {
@@ -107,7 +124,7 @@ void Audio::updateOscillatorFrequency(byte index, float frequency) {
 }
 
 void Audio::updateAllOscillatorsFrequency(float frequency) {
-  for (int i = 0; i < audio_config::voices_number; i++) {
+  for (byte i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].frequency(frequency);
   }
 }
@@ -117,7 +134,7 @@ void Audio::updateOscillatorAmplitude(byte index, float amplitude) {
 }
 
 void Audio::updateAllOscillatorsAmplitude(float amplitude) {
-  for (int i = 0; i < audio_config::voices_number; i++) {
+  for (byte i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].amplitude(amplitude);
   }
 }
@@ -137,7 +154,7 @@ void Audio::updateOscillatorWaveform(byte index, byte waveform) {
 }
 
 void Audio::updateAllOscillatorsWaveform(byte waveform) {
-  for (int i = 0; i < audio_config::voices_number; i++) {
+  for (byte i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(waveform);
   }
 }
@@ -149,7 +166,7 @@ void Audio::updateEnvelopeMode(bool percussive_mode) {
   float sustain = percussive_mode_ ? 0.0f : 1.0f;
   float release = percussive_mode_ ? 0.0f : release_time;
 
-  for (int i = 0; i < audio_config::voices_number; i++) {
+  for (byte i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].decay(decay);
     envelopes[i].sustain(sustain);
     envelopes[i].release(release);
@@ -163,7 +180,7 @@ void Audio::updateEnvelopeMode(bool percussive_mode) {
 void Audio::updateAttack(float attack) {
   attack_time = attack * 149.0f + 1.0f; // 1 to 150ms
 
-  for (int i = 0; i < audio_config::voices_number; i++) {
+  for (byte i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].attack(attack_time);
   }
 
@@ -174,13 +191,13 @@ void Audio::updateRelease(float release) {
   release_time = release * 598.0f + 2.0f; // 2 to 600ms
 
   if (percussive_mode_) {
-    for (int i = 0; i < audio_config::voices_number; i++) {
+    for (byte i = 0; i < audio_config::voices_number; i++) {
       envelopes[i].decay(release_time);
     }
 
     filter_envelope.decay(release_time);
   } else {
-    for (int i = 0; i < audio_config::voices_number; i++) {
+    for (byte i = 0; i < audio_config::voices_number; i++) {
       envelopes[i].release(release_time);
     }
 

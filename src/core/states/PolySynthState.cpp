@@ -14,6 +14,7 @@ void PolySynthState::begin() {
 
   synth_->audio->noteOffAll();
   synth_->audio->updateAllOscillatorsAmplitude(0.0f);
+  synth_->audio->updateLFOAmplitude(0.0f);
 
   AudioInterrupts();
 }
@@ -22,8 +23,6 @@ void PolySynthState::noteOn(byte note, byte velocity) {
   if (note_count_ >= audio_config::voices_number) {
     return;
   }
-
-  AutosaveLib::Logger::debug("PolySynthState::noteOn: " + String(note) + " note_count: " + String(note_count_));
 
   byte index = 0;
 
@@ -55,8 +54,6 @@ void PolySynthState::noteOn(byte note, byte velocity) {
 }
 
 void PolySynthState::noteOff(byte note, byte velocity) {
-  AutosaveLib::Logger::debug("PolySynthState::noteOff: " + String(note) + " note_count: " + String(note_count_));
-
   if (note_count_ <= 0 || note_count_ >= audio_config::voices_number) {
     return;
   }
@@ -110,7 +107,21 @@ void PolySynthState::process() {
       detune_ = detune_ * 1.3333333333333333f;
     }
 
-    // @TODO: implement oscillators spread
+    // @TODO: implement oscillators spread ?
+  }
+
+  // Update the frequency of the LFO
+  if (synth_->hardware->changed(hardware::CTRL_POT_2)) {
+    float pot_value =
+        synth_->hardware->read(hardware::CTRL_POT_2) * 4000.0f + 200.0f;
+
+    synth_->audio->updateLFOFrequency(pot_value);
+  }
+
+  // Update the amplitude of the LFO
+  if (synth_->hardware->changed(hardware::CTRL_POT_3)) {
+    synth_->audio->updateLFOAmplitude(
+        synth_->hardware->read(hardware::CTRL_POT_3));
   }
 }
 } // namespace Autosave

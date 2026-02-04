@@ -15,6 +15,7 @@ void MonoSynthState::begin() {
   // Kill all oscillators in case they were left on from a previous state
   synth_->audio->noteOffAll();
   synth_->audio->updateAllOscillatorsAmplitude(0.0f);
+  synth_->audio->updateLFOAmplitude(0.0f);
 
   // Setup oscillators
   synth_->audio->updateOscillatorAmplitude(0, 1.0f);
@@ -23,14 +24,12 @@ void MonoSynthState::begin() {
   synth_->audio->updateOscillatorAmplitude(
       2, synth_->hardware->read(hardware::CTRL_POT_3));
 
-  synth_->audio->updateMasterGain(audio_config::master_gain / 2.0f);
+  synth_->audio->updateMasterGain(audio_config::master_gain * 0.5f);
 
   AudioInterrupts();
 }
 
 void MonoSynthState::noteOn(byte note, byte velocity) {
-  AutosaveLib::Logger::debug("MonoSynthState::noteOn: " + String(note));
-
   current_note_ = note;
   float sustain = (float)velocity / 127.0f;
 
@@ -52,8 +51,6 @@ void MonoSynthState::noteOn(byte note, byte velocity) {
 }
 
 void MonoSynthState::noteOff(byte note, byte velocity) {
-  AutosaveLib::Logger::debug("MonoSynthState::noteOff: " + String(note));
-
   AudioNoInterrupts();
 
   synth_->audio->noteOff(0, true);

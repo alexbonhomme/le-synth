@@ -9,6 +9,9 @@ namespace Autosave {
 namespace audio_config {
 static constexpr byte voices_number = 8;
 
+static constexpr float init_lfo_frequency = 20.0f;
+static constexpr float init_lfo_amplitude = 0.0f;
+
 static constexpr float init_frequency = 440.0f; // A4
 static constexpr short init_waveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
 static constexpr float init_amplitude = 0.0f;
@@ -61,6 +64,9 @@ public:
 
   void updateEnvelopeMode(bool percussive_mode);
 
+  void updateLFOFrequency(float frequency);
+  void updateLFOAmplitude(float amplitude);
+
   void updateOscillatorFrequency(byte index, float frequency);
   void updateAllOscillatorsFrequency(float frequency);
   void updateOscillatorAmplitude(byte index, float amplitude);
@@ -71,16 +77,14 @@ public:
   void updateAttack(float attack);
   void updateRelease(float release);
 
-  void updateMasterGain(float gain) {
-    AutosaveLib::Logger::debug("Audio::updateMasterGain: " + String(gain));
-    amplifier_master.gain(gain);
-  }
+  void updateMasterGain(float gain) { amplifier_master.gain(gain); }
 
   static float computeFrequencyFromNote(byte note);
   static float computeFrequencyFromCV(float cv);
 
 private:
-  AudioSynthWaveform oscillators[audio_config::voices_number];
+  AudioSynthWaveformSine lfo;
+  AudioSynthWaveformModulated oscillators[audio_config::voices_number];
   AudioEffectEnvelope envelopes[audio_config::voices_number];
   AudioMixer4 mixers[audio_config::voices_number / 4];
   AudioMixer4 mixer_master;
@@ -88,7 +92,7 @@ private:
   AudioSynthWaveformDc dc_signal;
   AudioEffectEnvelope filter_envelope;
   AudioOutputI2S i2s1;
-  AudioConnection patchCords[22];
+  AudioConnection patchCords[30];
 
   bool percussive_mode_ = false;
   float attack_time = 1.0f;

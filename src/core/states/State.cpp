@@ -8,14 +8,18 @@ namespace Autosave {
 void State::process() {
   // Attack
   if (synth_->hardware->changed(hardware::CTRL_POT_ATTACK)) {
+    AudioNoInterrupts();
     synth_->audio->updateAttack(
         synth_->hardware->read(hardware::CTRL_POT_ATTACK));
+    AudioInterrupts();
   }
 
   // Decay/release
   if (synth_->hardware->changed(hardware::CTRL_POT_RELEASE)) {
+    AudioNoInterrupts();
     synth_->audio->updateRelease(
         synth_->hardware->read(hardware::CTRL_POT_RELEASE));
+    AudioInterrupts();
   }
 
   // Switch 1 changes the waveform type of the main oscillators
@@ -24,6 +28,8 @@ void State::process() {
 
     AutosaveLib::Logger::debug("Updating waveform: " + String(waveform));
 
+    AudioNoInterrupts();
+    
     switch (waveform) {
     case 0:
       synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE);
@@ -35,6 +41,8 @@ void State::process() {
       synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_BANDLIMIT_PULSE);
       break;
     }
+
+    AudioInterrupts();
   }
 }
 
