@@ -32,7 +32,7 @@ main {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 2rem;
-  max-width: 360px;
+  max-width: 420px;
   width: 100%;
 }
 
@@ -172,6 +172,123 @@ select:disabled {
 .channel-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Arp mode steps */
+.arp-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.arp-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.arp-description {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
+.arp-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.arp-mode-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.arp-mode-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.arp-length-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.arp-length-wrap label {
+  margin: 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.arp-length-select {
+  width: auto;
+  min-width: 3rem;
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.arp-steps-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.4rem;
+}
+
+/* Show only the first N cells according to selected length */
+.arp-steps-row.arp-length-1 .arp-cell:nth-child(n + 2) { display: none; }
+.arp-steps-row.arp-length-2 .arp-cell:nth-child(n + 3) { display: none; }
+.arp-steps-row.arp-length-3 .arp-cell:nth-child(n + 4) { display: none; }
+.arp-steps-row.arp-length-4 .arp-cell:nth-child(n + 5) { display: none; }
+.arp-steps-row.arp-length-5 .arp-cell:nth-child(n + 6) { display: none; }
+.arp-steps-row.arp-length-6 .arp-cell:nth-child(n + 7) { display: none; }
+.arp-steps-row.arp-length-7 .arp-cell:nth-child(n + 8) { display: none; }
+
+.arp-cell {
+  aspect-ratio: 1;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.arp-cell:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(125, 156, 212, 0.1);
+}
+
+.arp-load-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-size: 0.8rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.arp-load-btn:hover {
+  border-color: var(--accent);
+  background: rgba(125, 156, 212, 0.1);
+  color: var(--accent);
 }
 
 .footer {
