@@ -1,3 +1,5 @@
+#include <vector>
+
 #include "ArpSynthState.h"
 
 #include "core/Hardware.h"
@@ -16,9 +18,7 @@ ArpSynthState::~ArpSynthState() {
     synth_->midi->setHandleStop(nullptr);
   }
 
-  if (instance_ == this) {
-    instance_ = nullptr;
-  }
+  instance_ = nullptr;
 }
 
 void ArpSynthState::begin() {
@@ -60,15 +60,11 @@ void ArpSynthState::onClockTick() {
   }
 
   if (clock_tick_count_ == arp_synth_config::clock_ticks_per_sixteenth - 2) {
-    if (current_note_ == 0) {
+    if (current_note_.note == 0) {
       return;
     }
 
-    AutosaveLib::Logger::debug("ArpSynthState: note off " +
-                               String(current_note_));
-
-    MonoSynthState::noteOff(current_note_, 0);
-    current_note_ = 0;
+    internalNodeOff_();
   }
 
   if (clock_tick_count_ >= arp_synth_config::clock_ticks_per_sixteenth) {
@@ -78,40 +74,53 @@ void ArpSynthState::onClockTick() {
       return;
     }
 
-    AutosaveLib::Logger::debug("ArpSynthState: note on " + String(note_index_) + ": " +
-                               String(notes_[note_index_]));
-
-    current_note_ = notes_[note_index_];
-    note_index_ = (note_index_ + 1) % notes_.size();
-
-    // @TODO: Handle velocity
-    MonoSynthState::noteOn(current_note_, 127);
+    internalNodeOn_();
   }
 }
 
-void ArpSynthState::onStart() {
-  AutosaveLib::Logger::debug("ArpSynthState: MIDI start");
-  is_running_ = true;
-}
+void ArpSynthState::onStart() { is_running_ = true; }
 
 void ArpSynthState::onStop() {
-  AutosaveLib::Logger::debug("ArpSynthState: MIDI stop");
   is_running_ = false;
-  current_note_ = 0;
-  note_index_ = 0;
+  current_note_ = {0, 0};
+  arp_mode_index_ = 0;
   notes_.clear();
 
   MonoSynthState::noteOff(0, 0);
 }
 
-void ArpSynthState::process() { MonoSynthState::process(); }
+void ArpSynthState::process() {
+  MonoSynthState::process();
 
-void ArpSynthState::noteOn(uint8_t note, uint8_t velocity) {
-  if (notes_.size() >= arp_synth_config::max_arp_notes) {
-    return;
+  if (synth_->hardware->changed(hardware::CTRL_SWITCH_2)) {
+    arp_mod_ = (uint8_t)synth_->hardware->read(hardware::CTRL_SWITCH_2);
+  }
+}
+
+void ArpSynthState::internalNodeOn_() {
+  std::vector<uint8_t> arp_mode_sequence =
+      arp_synth_config::arp_mode_steps[arp_mod_];
+
+  if (arp_mode_index_ >= arp_mode_sequence.size()) {
+    arp_mode_index_ = 0;
   }
 
-  notes_.push_back(note);
+  uint8_t mode_index = arp_mode_sequence[arp_mode_index_] % notes_.size();
+  current_note_ = notes_[mode_index];
+  arp_mode_index_ = (arp_mode_index_ + 1) % arp_mode_sequence.size();
+
+  // @TODO: Handle velocity
+  MonoSynthState::noteOn(current_note_.note, current_note_.velocity);
+}
+
+void ArpSynthState::internalNodeOff_() {
+  MonoSynthState::noteOff(0, 0);
+
+  current_note_ = {0, 0};
+}
+
+void ArpSynthState::noteOn(uint8_t note, uint8_t velocity) {
+  notes_.push_back({note, velocity});
 }
 
 void ArpSynthState::noteOff(uint8_t note, uint8_t velocity) {
@@ -120,12 +129,11 @@ void ArpSynthState::noteOff(uint8_t note, uint8_t velocity) {
   }
 
   for (uint8_t i = 0; i < notes_.size(); i++) {
-    if (notes_[i] == note) {
+    if (notes_[i].note == note) {
       notes_.erase(notes_.begin() + i);
 
-      AutosaveLib::Logger::debug("ArpSynthState: note off " + String(note) + " at index " + String(i));
-      if (note_index_ > 0 && note_index_ >= i) {
-        note_index_--;
+      if (arp_mode_index_ > 0 && arp_mode_index_ >= i) {
+        arp_mode_index_--;
       }
 
       break;

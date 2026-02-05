@@ -107,11 +107,7 @@ float fixMidiNote(byte note) {
   // MIDI libray seems to add one octave to the note number for no reason
   note = note - 12;
 
-  if (note < 0) {
-    return 0;
-  }
-
-  return note;
+  return note < 0 ? 0 : note;
 }
 
 void Synth::midiNoteOn(byte channel, byte note, byte velocity) {

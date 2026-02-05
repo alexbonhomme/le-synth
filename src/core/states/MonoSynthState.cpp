@@ -30,8 +30,6 @@ void MonoSynthState::begin() {
 }
 
 void MonoSynthState::noteOn(byte note, byte velocity) {
-  AutosaveLib::Logger::debug("MonoSynthState::noteOn: " + String(note));
-
   current_note_ = note;
   float sustain = (float)velocity / 127.0f;
 
@@ -53,8 +51,6 @@ void MonoSynthState::noteOn(byte note, byte velocity) {
 }
 
 void MonoSynthState::noteOff(byte note, byte velocity) {
-  AutosaveLib::Logger::debug("MonoSynthState::noteOff: " + String(note));
-
   AudioNoInterrupts();
 
   synth_->audio->noteOff(0, true);
@@ -67,11 +63,11 @@ void MonoSynthState::noteOff(byte note, byte velocity) {
 void MonoSynthState::process() {
   State::process();
 
-  if (synth_->hardware->changed(hardware::CTRL_SWITCH_2)) {
-    AutosaveLib::Logger::warn(
-        "Not implemented yet! Value: " +
-        String(synth_->hardware->read(hardware::CTRL_SWITCH_2)));
-  }
+  // if (synth_->hardware->changed(hardware::CTRL_SWITCH_2)) {
+  //   AutosaveLib::Logger::warn(
+  //       "Not implemented yet! Value: " +
+  //       String(synth_->hardware->read(hardware::CTRL_SWITCH_2)));
+  // }
 
   // @TODO: Not connected yet (prototype)
   // if (synth_->hardware->changed(hardware::CTRL_SWITCH_3)) {
