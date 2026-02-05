@@ -77,6 +77,50 @@ void Midi::handleSysEx(byte *array, unsigned size) {
     return;
   }
 
+  // Get arp steps: F0 7D 00 04 F7
+  if (size == midi_config::SYSEX_ARP_GET_SIZE && array[0] == 0xF0 &&
+      array[1] == 0x7D && array[2] == 0x00 && array[3] == midi_config::SYSEX_ARP_GET_CMD &&
+      array[4] == 0xF7 && instance_->arp_steps_getter_ != nullptr) {
+    byte reply[midi_config::SYSEX_ARP_REPLY_SIZE];
+    reply[0] = 0xF0;
+    reply[1] = 0x7D;
+    reply[2] = 0x00;
+    reply[3] = midi_config::SYSEX_ARP_REPLY_CMD;
+    int off = 4;
+    for (uint8_t mode = 0; mode < 3; mode++) {
+      uint8_t len = 0;
+      byte data[midi_config::SYSEX_ARP_MAX_STEPS] = {0};
+      instance_->arp_steps_getter_(mode, &len, data);
+      if (len > midi_config::SYSEX_ARP_MAX_STEPS) {
+        len = midi_config::SYSEX_ARP_MAX_STEPS;
+      }
+      reply[off++] = len;
+      for (uint8_t i = 0; i < midi_config::SYSEX_ARP_MAX_STEPS; i++) {
+        reply[off++] = i < len ? data[i] : 0;
+      }
+    }
+    reply[off] = 0xF7;
+    instance_->sendSysEx(reply, sizeof(reply));
+    return;
+  }
+
+  // Set arp steps: F0 7D 00 06 [mode][len][0..8 bytes] F7
+  if (size >= 8 && size <= 16 && array[0] == 0xF0 && array[1] == 0x7D &&
+      array[2] == 0x00 && array[3] == midi_config::SYSEX_ARP_SET_CMD &&
+      instance_->arp_steps_setter_ != nullptr) {
+    uint8_t mode = array[4];
+    uint8_t len = array[5];
+    if (mode > 2 || len > midi_config::SYSEX_ARP_MAX_STEPS ||
+        size != (unsigned)(7 + len)) {
+      return;
+    }
+    if (array[6 + len] != 0xF7) {
+      return;
+    }
+    instance_->arp_steps_setter_(mode, len, array + 6);
+    return;
+  }
+
   byte nn;
   if (size == midi_config::SYSEX_SET_CHANNEL_SIZE) {
     // Payload only: 7D 00 01 nn
@@ -106,6 +150,7 @@ void Midi::handleSysEx(byte *array, unsigned size) {
 
   byte newChannel = nn + 1;
   instance_->setChannel(newChannel);
+  return;
 }
 
 void Midi::sendSysEx(const byte *data, unsigned size) {
@@ -153,6 +198,12 @@ void Midi::setChannel(byte channel) {
   MIDI.begin(channel);
 
   AutosaveLib::Logger::debug("MIDI channel set to " + String(channel));
+}
+
+void Midi::setArpStepsSysexHandlers(ArpStepsGetter getter,
+                                    ArpStepsSetter setter) {
+  arp_steps_getter_ = getter;
+  arp_steps_setter_ = setter;
 }
 
 void Midi::read() {

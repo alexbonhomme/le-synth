@@ -23,6 +23,13 @@ static constexpr unsigned SYSEX_SET_CHANNEL_SIZE_FULL = 6;
 static constexpr unsigned SYSEX_GET_CHANNEL_SIZE = 5;
 static constexpr byte SYSEX_GET_CHANNEL_COMMAND[] = {0xF0, 0x7D, 0x00, 0x03,
                                                      0xF7};
+// SysEx arp steps: get F0 7D 00 04 F7; reply F0 7D 00 05 [len0][8][len1][8][len2][8] F7; set F0 7D 00 06 [mode][len][0..8 bytes] F7
+static constexpr byte SYSEX_ARP_GET_CMD = 0x04;
+static constexpr byte SYSEX_ARP_REPLY_CMD = 0x05;
+static constexpr byte SYSEX_ARP_SET_CMD = 0x06;
+static constexpr unsigned SYSEX_ARP_GET_SIZE = 5;
+static constexpr unsigned SYSEX_ARP_REPLY_SIZE = 4 + 3 * (1 + 8) + 1; // 32
+static constexpr unsigned SYSEX_ARP_MAX_STEPS = 8;
 } // namespace midi_config
 
 struct MidiNote {
@@ -48,9 +55,16 @@ public:
   byte getChannel() const { return channel_; }
   void read();
 
+  /** Callbacks for arp steps SysEx get/set; set from ArpSynthState. */
+  using ArpStepsGetter = void (*)(uint8_t mode, uint8_t *len, byte *data);
+  using ArpStepsSetter = void (*)(uint8_t mode, uint8_t len, const byte *data);
+  void setArpStepsSysexHandlers(ArpStepsGetter getter, ArpStepsSetter setter);
+
 private:
   static Midi *instance_;
   byte channel_ = 1;
+  ArpStepsGetter arp_steps_getter_ = nullptr;
+  ArpStepsSetter arp_steps_setter_ = nullptr;
 
   byte loadChannelFromEeprom();
   void saveChannelToEeprom(byte channel);

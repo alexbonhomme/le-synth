@@ -1,4 +1,5 @@
 #include "Synth.h"
+#include "core/EepromStorage.h"
 #include "lib/Logger.h"
 #include "states/ArpSynthState.h"
 #include "states/MonoSynthState.h"
@@ -27,6 +28,8 @@ void Synth::begin() {
   hardware->begin();
   audio->begin();
   midi->begin();
+  EepromStorage::loadArpModeSteps(arp_synth_config::arp_mode_steps);
+  ArpSynthState::registerArpStepsWithMidi(midi);
   state_->begin();
 
   // Load the initial mode from the hardware

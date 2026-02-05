@@ -14,6 +14,7 @@ namespace arp_synth_config {
 constexpr uint8_t clock_ticks_per_sixteenth =
     6; // 24 MIDI clocks per quarter → 6 per 1/16
 
+/** Runtime arp step sequences (persisted via EepromStorage). */
 static std::array<std::vector<uint8_t>, 3> arp_mode_steps{
     {std::vector<uint8_t>({0, 1, 2, 3, 4, 5, 6, 7}),
      std::vector<uint8_t>({4, 3, 2, 1, 0}),
@@ -54,6 +55,9 @@ public:
   static void onMidiClock();
   static void onMidiStart();
   static void onMidiStop();
+
+  /** Register arp steps get/set with Midi for SysEx; call from Synth::begin(). */
+  static void registerArpStepsWithMidi(Midi *midi);
 };
 } // namespace Autosave
 
