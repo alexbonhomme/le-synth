@@ -4,7 +4,6 @@
 #include <Arduino.h>
 
 #include "State.h"
-#include "lib/Logger.h"
 #include "core/Midi.h"
 
 namespace Autosave {

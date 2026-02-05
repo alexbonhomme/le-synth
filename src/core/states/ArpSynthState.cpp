@@ -1,10 +1,10 @@
-#include <vector>
-
 #include "ArpSynthState.h"
 
 #include "core/Hardware.h"
 #include "core/Synth.h"
 #include "lib/Logger.h"
+
+#include <vector>
 
 namespace Autosave {
 
@@ -98,7 +98,7 @@ void ArpSynthState::process() {
 }
 
 void ArpSynthState::internalNodeOn_() {
-  std::vector<uint8_t> arp_mode_sequence =
+  const std::vector<uint8_t>& arp_mode_sequence =
       arp_synth_config::arp_mode_steps[arp_mod_];
 
   if (arp_mode_index_ >= arp_mode_sequence.size()) {

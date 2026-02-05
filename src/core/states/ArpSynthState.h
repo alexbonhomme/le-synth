@@ -1,11 +1,12 @@
 #ifndef AUTOSAVE_ARP_SYNTH_STATE_H
 #define AUTOSAVE_ARP_SYNTH_STATE_H
 
-#include <array>
-#include <vector>
+#include "MonoSynthState.h"
 
 #include "core/Midi.h"
-#include "MonoSynthState.h"
+
+#include <array>
+#include <vector>
 
 namespace Autosave {
 
@@ -18,8 +19,6 @@ static std::array<std::vector<uint8_t>, 3> arp_mode_steps{
      std::vector<uint8_t>({4, 3, 2, 1, 0}),
      std::vector<uint8_t>({0, 2, 1, 3})}};
 } // namespace arp_synth_config
-
-
 
 class ArpSynthState : public MonoSynthState {
 private:
