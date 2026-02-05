@@ -22,7 +22,6 @@ import { MIDI_DEVICE_NAME } from './constants.js';
   const channelGrid = document.getElementById('channelGrid');
   const currentChannelEl = document.getElementById('currentChannel');
   const arpModes = document.getElementById('arpModes');
-  const arpLoadBtn = document.getElementById('arpLoadBtn');
 
   let midiAccess = null;
   let icarusOutput = null;
@@ -138,6 +137,5 @@ import { MIDI_DEVICE_NAME } from './constants.js';
 
   buildChannelButtons(channelGrid, sendChannel);
   buildArpStepsUI(arpModes, (mode, steps) => sendArpSteps(mode, steps));
-  arpLoadBtn.addEventListener('click', requestArpSteps);
   init();
 })();

@@ -4,28 +4,47 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ICARUS · Configuration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            surface: { DEFAULT: '#1a1a1f', border: '#2a2a32' },
+            accent: { DEFAULT: '#7d9cd4', hover: '#9ab3e8' },
+            success: '#6b9b6b',
+            error: '#c45c5c',
+          },
+          fontFamily: {
+            mono: ['"SF Mono"', '"Fira Code"', 'Consolas', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-  <main>
-    <h1>ICARUS</h1>
-    <p class="subtitle">MIDI configuration tool</p>
+<body class="min-h-screen bg-[#0f0f12] text-[#e8e6e3] font-mono flex flex-col items-center justify-center p-6">
+  <main class="w-full max-w-[420px] bg-surface border border-surface-border rounded-xl p-8 shadow-xl">
+    <h1 class="text-xl font-semibold tracking-wide">ICARUS</h1>
+    <p class="text-sm text-gray-500 mb-6">MIDI configuration tool</p>
 
-    <div id="status" class="status pending">Request MIDI access to continue.</div>
-
-    <div class="current-channel" id="currentChannelWrap">
-      <span class="current-channel-label">Current MIDI channel</span>
-      <span class="current-channel-value" id="currentChannel">—</span>
+    <div id="status" class="text-sm rounded-lg border px-3 py-2.5 mb-6 border-surface-border text-gray-500">
+      Request MIDI access to continue.
     </div>
 
-    <span class="channel-label">Select MIDI channel</span>
-    <div class="channel-grid" id="channelGrid"></div>
+    <div id="currentChannelWrap" class="flex items-baseline justify-between gap-4 px-4 py-3 bg-[#0f0f12] border border-surface-border rounded-lg mb-5">
+      <span class="text-xs uppercase tracking-wider text-gray-500">Current MIDI channel</span>
+      <span id="currentChannel" class="text-lg font-semibold text-accent">—</span>
+    </div>
 
-    <section class="arp-section" id="arpSection">
-      <h2 class="arp-title">Arp mode steps</h2>
-      <p class="arp-description">Three step sequences (max 8 steps each). Click a cell to cycle 0-7; length sets how many steps are used.</p>
-      <div class="arp-modes" id="arpModes"></div>
-      <button type="button" class="arp-load-btn" id="arpLoadBtn">Load from device</button>
+    <span class="block text-xs uppercase tracking-wider text-gray-500 mb-2">Select MIDI channel</span>
+    <div id="channelGrid" class="grid grid-cols-8 gap-1 mb-6"></div>
+
+    <section id="arpSection" class="mt-8 pt-6 border-t border-surface-border">
+      <h2 class="text-base font-semibold mb-1">ARP modes</h2>
+      <p class="text-xs text-gray-500 mb-4 leading-relaxed">Click a cell to set each step's value (1–8); length sets how many steps are used.</p>
+      <div id="arpModes" class="flex flex-col gap-5"></div>
     </section>
   </main>
 
