@@ -7,12 +7,6 @@
 namespace Autosave {
 
 namespace midi_config {
-// Default MIDI channel when EEPROM is uninitialized
-static constexpr byte default_channel = 1;
-// EEPROM layout for persisted MIDI channel
-static constexpr int EEPROM_CHANNEL_MAGIC = 0xA5;
-static constexpr int EEPROM_ADDR_CHANNEL_MAGIC = 0;
-static constexpr int EEPROM_ADDR_CHANNEL = 1;
 // SysEx: "set MIDI channel" F0 7D 00 01 nn F7 (nn = 0..15 → channel 1..16)
 // SysEx: "get channel" request F0 7D 00 03 F7 (5 bytes); reply F0 7D 00 02 nn
 // F7 Callback may receive: 7D 00 01 nn (size 4) or full F0 7D 00 01 nn F7 (size
@@ -65,9 +59,6 @@ private:
   byte channel_ = 1;
   ArpStepsGetter arp_steps_getter_ = nullptr;
   ArpStepsSetter arp_steps_setter_ = nullptr;
-
-  byte loadChannelFromEeprom();
-  void saveChannelToEeprom(byte channel);
 
   /** Static SysEx handler to register with the MIDI library. */
   static void handleSysEx(byte *array, unsigned size);

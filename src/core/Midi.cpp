@@ -1,8 +1,8 @@
-#include <EEPROM.h>
 #include <cstring>
 #include "usb_midi.h"
 
 #include "Midi.h"
+#include "core/EepromStorage.h"
 #include "lib/Logger.h"
 
 namespace Autosave {
@@ -20,7 +20,7 @@ Midi::Midi() {
 }
 
 void Midi::begin() {
-  channel_ = loadChannelFromEeprom();
+  channel_ = EepromStorage::loadMidiChannel();
 
   AutosaveLib::Logger::info("Initializing MIDI module (channel: " + String(channel_) + ")");
 
@@ -162,39 +162,13 @@ void Midi::sendSysEx(const byte *data, unsigned size) {
   MIDI.sendSysEx(size, data, true);
 }
 
-byte Midi::loadChannelFromEeprom() {
-  if (EEPROM.read(midi_config::EEPROM_ADDR_CHANNEL_MAGIC) !=
-      midi_config::EEPROM_CHANNEL_MAGIC) {
-    return midi_config::default_channel;
-  }
-
-  byte ch = EEPROM.read(midi_config::EEPROM_ADDR_CHANNEL);
-  if (ch < 1 || ch > 16) {
-    return midi_config::default_channel;
-  }
-
-  AutosaveLib::Logger::debug("Loaded MIDI channel from EEPROM: " + String(ch));
-
-  return ch;
-}
-
-void Midi::saveChannelToEeprom(byte channel) {
-  if (channel < 1 || channel > 16) {
-    return;
-  }
-
-  EEPROM.write(midi_config::EEPROM_ADDR_CHANNEL_MAGIC,
-               midi_config::EEPROM_CHANNEL_MAGIC);
-  EEPROM.write(midi_config::EEPROM_ADDR_CHANNEL, channel);
-}
-
 void Midi::setChannel(byte channel) {
   if (channel < 1 || channel > 16) {
     return;
   }
 
   channel_ = channel;
-  saveChannelToEeprom(channel);
+  EepromStorage::saveMidiChannel(static_cast<uint8_t>(channel));
   MIDI.begin(channel);
 
   AutosaveLib::Logger::debug("MIDI channel set to " + String(channel));

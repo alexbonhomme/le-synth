@@ -5,6 +5,27 @@
 
 namespace Autosave {
 
+uint8_t EepromStorage::loadMidiChannel() {
+  if (EEPROM.read(kMidiChannelAddrMagic) != kMidiChannelMagic) {
+    return kMidiChannelDefault;
+  }
+  uint8_t ch = static_cast<uint8_t>(EEPROM.read(kMidiChannelAddr));
+  if (ch < 1 || ch > 16) {
+    return kMidiChannelDefault;
+  }
+  AutosaveLib::Logger::debug("Loaded MIDI channel from EEPROM: " + String(ch));
+  return ch;
+}
+
+void EepromStorage::saveMidiChannel(uint8_t channel) {
+  if (channel < 1 || channel > 16) {
+    return;
+  }
+  EEPROM.write(kMidiChannelAddrMagic, kMidiChannelMagic);
+  EEPROM.write(kMidiChannelAddr, channel);
+  AutosaveLib::Logger::debug("Saved MIDI channel to EEPROM");
+}
+
 void EepromStorage::loadArpModeSteps(ArpModeSteps &out) {
   if (EEPROM.read(kArpAddrMagic) != kArpMagic) {
     return;

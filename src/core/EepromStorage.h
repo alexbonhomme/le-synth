@@ -8,7 +8,7 @@
 
 namespace Autosave {
 
-/** EEPROM-backed storage for configuration (arp steps, etc.). */
+/** EEPROM-backed storage for configuration (MIDI channel, arp steps, etc.). */
 class EepromStorage {
 public:
   /** Type for the 3 arp mode step sequences (max 8 steps each). */
@@ -17,10 +17,27 @@ public:
   /** Max steps per arp mode. */
   static constexpr uint8_t kMaxArpSteps = 8;
 
-  /** EEPROM layout for arp mode steps. */
+  /** EEPROM layout for MIDI channel (addresses 0–1). */
+  static constexpr uint8_t kMidiChannelMagic = 0xA5;
+  static constexpr int kMidiChannelAddrMagic = 0;
+  static constexpr int kMidiChannelAddr = 1;
+  static constexpr uint8_t kMidiChannelDefault = 1;
+
+  /** EEPROM layout for arp mode steps (addresses 2+). */
   static constexpr int kArpMagic = 0xA6;
   static constexpr int kArpAddrMagic = 2;
   static constexpr int kArpAddrData = 3;
+
+  /**
+   * Load MIDI channel from EEPROM (1–16).
+   * Returns kMidiChannelDefault if magic invalid or value out of range.
+   */
+  static uint8_t loadMidiChannel();
+
+  /**
+   * Save MIDI channel to EEPROM (1–16). No-op if out of range.
+   */
+  static void saveMidiChannel(uint8_t channel);
 
   /**
    * Load arp mode steps from EEPROM into out.
