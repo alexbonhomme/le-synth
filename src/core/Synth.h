@@ -1,8 +1,6 @@
 #ifndef AUTOSAVE_SYNTH_H
 #define AUTOSAVE_SYNTH_H
 
-#include <Arduino.h>
-
 #include "Audio.h"
 #include "Hardware.h"
 #include "Midi.h"
@@ -29,8 +27,8 @@ public:
   void process();
   void changeState(State *state);
 
-  static void midiNoteOn(byte channel, byte note, byte velocity);
-  static void midiNoteOff(byte channel, byte note, byte velocity);
+  static void midiNoteOn(uint8_t channel, uint8_t note, uint8_t velocity);
+  static void midiNoteOff(uint8_t channel, uint8_t note, uint8_t velocity);
 };
 
 } // namespace Autosave

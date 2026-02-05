@@ -1,4 +1,4 @@
-#include "synth_waveform.h"
+#include <synth_waveform.h>
 
 #include "Audio.h"
 #include "lib/Logger.h"
@@ -48,13 +48,13 @@ void Audio::begin() {
   lfo.frequency(audio_config::init_lfo_frequency);
   lfo.amplitude(audio_config::init_lfo_amplitude);
 
-  for (byte i = 0; i < audio_config::voices_number; i++) {
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(audio_config::init_waveform);
     oscillators[i].frequency(audio_config::init_frequency);
     oscillators[i].amplitude(audio_config::init_amplitude);
   }
 
-  for (byte i = 0; i < audio_config::voices_number; i++) {
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].attack(attack_time);
     envelopes[i].hold(0);
     envelopes[i].decay(0);
@@ -62,7 +62,7 @@ void Audio::begin() {
     envelopes[i].release(release_time);
   }
 
-  for (byte i = 0; i < 2; i++) {
+  for (uint8_t i = 0; i < 2; i++) {
     mixers[i].gain(0, audio_config::osc_mix_gain);
     mixers[i].gain(1, audio_config::osc_mix_gain);
     mixers[i].gain(2, audio_config::osc_mix_gain);
@@ -85,7 +85,7 @@ void Audio::begin() {
   filter_envelope.releaseNoteOn(0);
 }
 
-void Audio::noteOn(byte index, float sustain, bool triggerFilterEnvelope) {
+void Audio::noteOn(uint8_t index, float sustain, bool triggerFilterEnvelope) {
   envelopes[index].sustain(sustain);
   envelopes[index].noteOn();
 
@@ -95,7 +95,7 @@ void Audio::noteOn(byte index, float sustain, bool triggerFilterEnvelope) {
   }
 }
 
-void Audio::noteOff(byte index, bool triggerFilterEnvelope) {
+void Audio::noteOff(uint8_t index, bool triggerFilterEnvelope) {
   envelopes[index].noteOff();
 
   if (triggerFilterEnvelope) {
@@ -104,42 +104,38 @@ void Audio::noteOff(byte index, bool triggerFilterEnvelope) {
 }
 
 void Audio::noteOffAll() {
-  for (byte i = 0; i < audio_config::voices_number; i++) {
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].noteOff();
   }
 
   filter_envelope.noteOff();
 }
 
-void Audio::updateLFOFrequency(float frequency) {
-  lfo.frequency(frequency);
-}
+void Audio::updateLFOFrequency(float frequency) { lfo.frequency(frequency); }
 
-void Audio::updateLFOAmplitude(float amplitude) {
-  lfo.amplitude(amplitude);
-}
+void Audio::updateLFOAmplitude(float amplitude) { lfo.amplitude(amplitude); }
 
-void Audio::updateOscillatorFrequency(byte index, float frequency) {
+void Audio::updateOscillatorFrequency(uint8_t index, float frequency) {
   oscillators[index].frequency(frequency);
 }
 
 void Audio::updateAllOscillatorsFrequency(float frequency) {
-  for (byte i = 0; i < audio_config::voices_number; i++) {
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].frequency(frequency);
   }
 }
 
-void Audio::updateOscillatorAmplitude(byte index, float amplitude) {
+void Audio::updateOscillatorAmplitude(uint8_t index, float amplitude) {
   oscillators[index].amplitude(amplitude);
 }
 
 void Audio::updateAllOscillatorsAmplitude(float amplitude) {
-  for (byte i = 0; i < audio_config::voices_number; i++) {
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].amplitude(amplitude);
   }
 }
 
-void Audio::updateOscillatorWaveform(byte index, byte waveform) {
+void Audio::updateOscillatorWaveform(uint8_t index, uint8_t waveform) {
   oscillators[index].begin(waveform);
 
   float gain = audio_config::osc_mix_gain;
@@ -153,8 +149,8 @@ void Audio::updateOscillatorWaveform(byte index, byte waveform) {
   mixers[index % audio_config::voices_number].gain(index % 4, gain);
 }
 
-void Audio::updateAllOscillatorsWaveform(byte waveform) {
-  for (byte i = 0; i < audio_config::voices_number; i++) {
+void Audio::updateAllOscillatorsWaveform(uint8_t waveform) {
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(waveform);
   }
 }
@@ -166,7 +162,7 @@ void Audio::updateEnvelopeMode(bool percussive_mode) {
   float sustain = percussive_mode_ ? 0.0f : 1.0f;
   float release = percussive_mode_ ? 0.0f : release_time;
 
-  for (byte i = 0; i < audio_config::voices_number; i++) {
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].decay(decay);
     envelopes[i].sustain(sustain);
     envelopes[i].release(release);
@@ -180,7 +176,7 @@ void Audio::updateEnvelopeMode(bool percussive_mode) {
 void Audio::updateAttack(float attack) {
   attack_time = attack * 149.0f + 1.0f; // 1 to 150ms
 
-  for (byte i = 0; i < audio_config::voices_number; i++) {
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].attack(attack_time);
   }
 
@@ -191,13 +187,13 @@ void Audio::updateRelease(float release) {
   release_time = release * 598.0f + 2.0f; // 2 to 600ms
 
   if (percussive_mode_) {
-    for (byte i = 0; i < audio_config::voices_number; i++) {
+    for (uint8_t i = 0; i < audio_config::voices_number; i++) {
       envelopes[i].decay(release_time);
     }
 
     filter_envelope.decay(release_time);
   } else {
-    for (byte i = 0; i < audio_config::voices_number; i++) {
+    for (uint8_t i = 0; i < audio_config::voices_number; i++) {
       envelopes[i].release(release_time);
     }
 
@@ -205,7 +201,7 @@ void Audio::updateRelease(float release) {
   }
 }
 
-float Audio::computeFrequencyFromNote(byte note) {
+float Audio::computeFrequencyFromNote(uint8_t note) {
   if (note < 0) {
     return 0.0f;
   }

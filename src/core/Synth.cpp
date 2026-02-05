@@ -1,5 +1,6 @@
 #include "Synth.h"
-#include "core/EepromStorage.h"
+
+#include "EepromStorage.h"
 #include "lib/Logger.h"
 #include "states/ArpSynthState.h"
 #include "states/MonoSynthState.h"
@@ -28,6 +29,7 @@ void Synth::begin() {
   hardware->begin();
   audio->begin();
   midi->begin();
+
   EepromStorage::loadArpModeSteps(ArpSynthState::arp_mode_steps);
   ArpSynthState::registerArpStepsWithMidi(midi);
   state_->begin();
@@ -53,7 +55,7 @@ void Synth::process() {
 }
 
 void Synth::updateMode() {
-  byte mode = (byte)hardware->read(hardware::CTRL_SWITCH_MODE);
+  uint8_t mode = (uint8_t)hardware->read(hardware::CTRL_SWITCH_MODE);
 
   switch (mode) {
   case 0:
@@ -106,14 +108,14 @@ void Synth::changeState(State *state) {
   state_->begin();
 }
 
-uint8_t fixMidiNote(byte note) {
+uint8_t fixMidiNote(uint8_t note) {
   // MIDI libray seems to add one octave to the note number for no reason
   note = note - 12;
 
   return note < 0 ? 0 : note;
 }
 
-void Synth::midiNoteOn(byte channel, byte note, byte velocity) {
+void Synth::midiNoteOn(uint8_t channel, uint8_t note, uint8_t velocity) {
   if (instance_ == nullptr || instance_->state_ == nullptr) {
     return;
   }
@@ -121,7 +123,7 @@ void Synth::midiNoteOn(byte channel, byte note, byte velocity) {
   instance_->state_->noteOn({fixMidiNote(note), velocity});
 }
 
-void Synth::midiNoteOff(byte channel, byte note, byte velocity) {
+void Synth::midiNoteOff(uint8_t channel, uint8_t note, uint8_t velocity) {
   if (instance_ == nullptr || instance_->state_ == nullptr) {
     return;
   }

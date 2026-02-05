@@ -1,8 +1,6 @@
 #ifndef AUTOSAVE_POLY_SYNTH_STATE_H
 #define AUTOSAVE_POLY_SYNTH_STATE_H
 
-#include <Arduino.h>
-
 #include "State.h"
 #include "core/Audio.h"
 #include "core/Midi.h"

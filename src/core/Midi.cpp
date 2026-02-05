@@ -1,9 +1,10 @@
-#include <cstring>
-#include "usb_midi.h"
+#include <usb_midi.h>
 
 #include "Midi.h"
 #include "core/EepromStorage.h"
 #include "lib/Logger.h"
+
+#include <cstring>
 
 namespace Autosave {
 
@@ -27,14 +28,14 @@ void Midi::begin() {
   MIDI.begin(channel_);
 }
 
-void Midi::setHandleNoteOn(void (*callback)(byte channel, byte note,
-                                            byte velocity)) {
+void Midi::setHandleNoteOn(void (*callback)(uint8_t channel, uint8_t note,
+                                            uint8_t velocity)) {
   usbMIDI.setHandleNoteOn(callback);
   MIDI.setHandleNoteOn(callback);
 }
 
-void Midi::setHandleNoteOff(void (*callback)(byte channel, byte note,
-                                             byte velocity)) {
+void Midi::setHandleNoteOff(void (*callback)(uint8_t channel, uint8_t note,
+                                             uint8_t velocity)) {
   usbMIDI.setHandleNoteOff(callback);
   MIDI.setHandleNoteOff(callback);
 }
@@ -59,7 +60,7 @@ void Midi::setHandleStop(void (*callback)(void)) {
   MIDI.setHandleStop(callback);
 }
 
-void Midi::handleSysEx(byte *array, unsigned size) {
+void Midi::handleSysEx(uint8_t *array, unsigned size) {
   if (instance_ == nullptr || array == nullptr) {
     return;
   }
@@ -68,11 +69,11 @@ void Midi::handleSysEx(byte *array, unsigned size) {
   if (size == midi_config::SYSEX_GET_CHANNEL_SIZE &&
       memcmp(array, midi_config::SYSEX_GET_CHANNEL_COMMAND,
              midi_config::SYSEX_GET_CHANNEL_SIZE) == 0) {
-    byte ch = instance_->getChannel();
+    uint8_t ch = instance_->getChannel();
     if (ch < 1 || ch > 16)
       ch = 1;
-    byte nn = static_cast<byte>(ch - 1);
-    const byte reply[] = {0xF0, 0x7D, 0x00, 0x02, nn, 0xF7};
+    uint8_t nn = static_cast<uint8_t>(ch - 1);
+    const uint8_t reply[] = {0xF0, 0x7D, 0x00, 0x02, nn, 0xF7};
     instance_->sendSysEx(reply, sizeof(reply));
     return;
   }
@@ -81,7 +82,7 @@ void Midi::handleSysEx(byte *array, unsigned size) {
   if (size == midi_config::SYSEX_ARP_GET_SIZE && array[0] == 0xF0 &&
       array[1] == 0x7D && array[2] == 0x00 && array[3] == midi_config::SYSEX_ARP_GET_CMD &&
       array[4] == 0xF7 && instance_->arp_steps_getter_ != nullptr) {
-    byte reply[midi_config::SYSEX_ARP_REPLY_SIZE];
+    uint8_t reply[midi_config::SYSEX_ARP_REPLY_SIZE];
     reply[0] = 0xF0;
     reply[1] = 0x7D;
     reply[2] = 0x00;
@@ -89,7 +90,7 @@ void Midi::handleSysEx(byte *array, unsigned size) {
     int off = 4;
     for (uint8_t mode = 0; mode < 3; mode++) {
       uint8_t len = 0;
-      byte data[midi_config::SYSEX_ARP_MAX_STEPS] = {0};
+      uint8_t data[midi_config::SYSEX_ARP_MAX_STEPS] = {0};
       instance_->arp_steps_getter_(mode, &len, data);
       if (len > midi_config::SYSEX_ARP_MAX_STEPS) {
         len = midi_config::SYSEX_ARP_MAX_STEPS;
@@ -121,7 +122,7 @@ void Midi::handleSysEx(byte *array, unsigned size) {
     return;
   }
 
-  byte nn;
+  uint8_t nn;
   if (size == midi_config::SYSEX_SET_CHANNEL_SIZE) {
     // Payload only: 7D 00 01 nn
     if (memcmp(array, midi_config::SYSEX_SET_CHANNEL_COMMAND,
@@ -148,12 +149,12 @@ void Midi::handleSysEx(byte *array, unsigned size) {
     return;
   }
 
-  byte newChannel = nn + 1;
+  uint8_t newChannel = nn + 1;
   instance_->setChannel(newChannel);
   return;
 }
 
-void Midi::sendSysEx(const byte *data, unsigned size) {
+void Midi::sendSysEx(const uint8_t *data, unsigned size) {
   if (data == nullptr || size == 0) {
     return;
   }
@@ -162,7 +163,7 @@ void Midi::sendSysEx(const byte *data, unsigned size) {
   MIDI.sendSysEx(size, data, true);
 }
 
-void Midi::setChannel(byte channel) {
+void Midi::setChannel(uint8_t channel) {
   if (channel < 1 || channel > 16) {
     return;
   }

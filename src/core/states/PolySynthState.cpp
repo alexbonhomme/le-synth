@@ -24,7 +24,7 @@ void PolySynthState::noteOn(MidiNote note) {
     return;
   }
 
-  byte index = 0;
+  uint8_t index = 0;
 
   // Looking for the first empty oscillator
   while (index < audio_config::voices_number) {
@@ -57,7 +57,7 @@ void PolySynthState::noteOff(MidiNote note) {
     return;
   }
 
-  byte index = 0;
+  uint8_t index = 0;
 
   // Looking for the first note that matches the note
   while (index < audio_config::voices_number) {

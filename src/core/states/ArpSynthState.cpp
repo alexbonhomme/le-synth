@@ -142,7 +142,7 @@ void ArpSynthState::noteOff(MidiNote note) {
   }
 }
 
-static void arpStepsGetter(uint8_t mode, uint8_t *len, byte *data) {
+static void arpStepsGetter(uint8_t mode, uint8_t *len, uint8_t *data) {
   if (mode >= 3 || len == nullptr || data == nullptr) {
     return;
   }
@@ -155,7 +155,7 @@ static void arpStepsGetter(uint8_t mode, uint8_t *len, byte *data) {
   }
 }
 
-static void arpStepsSetter(uint8_t mode, uint8_t len, const byte *data) {
+static void arpStepsSetter(uint8_t mode, uint8_t len, const uint8_t *data) {
   if (mode >= 3 || data == nullptr || len > EepromStorage::kMaxArpSteps) {
     return;
   }

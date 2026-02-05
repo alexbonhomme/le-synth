@@ -1,8 +1,6 @@
 #ifndef AUTOSAVE_MONO_SYNTH_STATE_H
 #define AUTOSAVE_MONO_SYNTH_STATE_H
 
-#include <Arduino.h>
-
 #include "State.h"
 #include "core/Midi.h"
 

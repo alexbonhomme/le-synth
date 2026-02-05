@@ -2,6 +2,7 @@
 #include "lib/Logger.h"
 
 #include <EEPROM.h>
+#include <cstdint>
 
 namespace Autosave {
 

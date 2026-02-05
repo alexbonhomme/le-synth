@@ -1,7 +1,6 @@
 #ifndef AUTOSAVE_AUDIO_H
 #define AUTOSAVE_AUDIO_H
 
-#include <Arduino.h>
 #include <Audio.h>
 #include <cmath>
 
@@ -10,7 +9,7 @@
 namespace Autosave {
 
 namespace audio_config {
-static constexpr byte voices_number = 8;
+static constexpr uint8_t voices_number = 8;
 
 static constexpr float init_lfo_frequency = 20.0f;
 static constexpr float init_lfo_amplitude = 0.0f;
@@ -61,8 +60,8 @@ public:
 
   void begin();
 
-  void noteOn(byte index, float sustain, bool triggerFilterEnvelope = false);
-  void noteOff(byte index, bool triggerFilterEnvelope = false);
+  void noteOn(uint8_t index, float sustain, bool triggerFilterEnvelope = false);
+  void noteOff(uint8_t index, bool triggerFilterEnvelope = false);
   void noteOffAll();
 
   void updateEnvelopeMode(bool percussive_mode);
@@ -70,17 +69,17 @@ public:
   void updateLFOFrequency(float frequency);
   void updateLFOAmplitude(float amplitude);
 
-  void updateOscillatorFrequency(byte index, float frequency);
+  void updateOscillatorFrequency(uint8_t index, float frequency);
   void updateAllOscillatorsFrequency(float frequency);
-  void updateOscillatorAmplitude(byte index, float amplitude);
+  void updateOscillatorAmplitude(uint8_t index, float amplitude);
   void updateAllOscillatorsAmplitude(float amplitude);
-  void updateOscillatorWaveform(byte index, byte waveform);
-  void updateAllOscillatorsWaveform(byte waveform);
+  void updateOscillatorWaveform(uint8_t index, uint8_t waveform);
+  void updateAllOscillatorsWaveform(uint8_t waveform);
 
   void updateAttack(float attack);
   void updateRelease(float release);
 
-  void normalizeMasterGain(byte oscillators_count) {
+  void normalizeMasterGain(uint8_t oscillators_count) {
     float gain_correction = 3.0f / std::log2f(oscillators_count + 10.0f);
     float normalized_gain = audio_config::master_gain * gain_correction;
 
@@ -89,7 +88,7 @@ public:
     amplifier_master.gain(normalized_gain);
   }
 
-  static float computeFrequencyFromNote(byte note);
+  static float computeFrequencyFromNote(uint8_t note);
   static float computeFrequencyFromCV(float cv);
 
 private:

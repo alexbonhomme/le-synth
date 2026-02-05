@@ -36,7 +36,7 @@ void Hardware::begin() {
 }
 
 void Hardware::update() {
-  for (byte i = 0; i < sizeof(controls) / sizeof(controls[0]); i++) {
+  for (uint8_t i = 0; i < sizeof(controls) / sizeof(controls[0]); i++) {
     controls[i]->update();
   }
 

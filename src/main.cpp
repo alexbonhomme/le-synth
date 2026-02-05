@@ -1,9 +1,6 @@
-#include <Arduino.h>
 #include <Bounce2.h>
 #include <MIDI.h>
 #include <ResponsiveAnalogRead.h>
-
-// #define DISABLE_LOGGING
 
 #include "core/Synth.h"
 

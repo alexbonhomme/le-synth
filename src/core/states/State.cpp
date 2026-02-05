@@ -1,5 +1,6 @@
+#include <synth_waveform.h>
+
 #include "State.h"
-#include "synth_waveform.h"
 #include "core/Synth.h"
 #include "lib/Logger.h"
 
@@ -24,12 +25,12 @@ void State::process() {
 
   // Switch 1 changes the waveform type of the main oscillators
   if (synth_->hardware->changed(hardware::CTRL_SWITCH_1)) {
-    byte waveform = (byte)synth_->hardware->read(hardware::CTRL_SWITCH_1);
+    uint8_t waveform = (uint8_t)synth_->hardware->read(hardware::CTRL_SWITCH_1);
 
     AutosaveLib::Logger::debug("Updating waveform: " + String(waveform));
 
     AudioNoInterrupts();
-    
+
     switch (waveform) {
     case 0:
       synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE);

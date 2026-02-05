@@ -7,7 +7,7 @@
 namespace Autosave {
 
 namespace defaults {
-static constexpr byte bounce_interval = 100;
+static constexpr uint8_t bounce_interval = 100;
 static constexpr float snap_multiplier = 0.001f;
 } // namespace defaults
 
@@ -46,7 +46,7 @@ class HardwareControl {
 public:
   virtual ~HardwareControl() {}
 
-  virtual void begin(byte pin) = 0;
+  virtual void begin(uint8_t pin) = 0;
   virtual void update() = 0;
   virtual bool changed() = 0;
   virtual float read() = 0;
@@ -58,12 +58,12 @@ private:
   bool has_two_pins = false;
 
 public:
-  void begin(byte pin) {
+  void begin(uint8_t pin) {
     bounce[0].attach(pin, INPUT_PULLUP);
     bounce[0].interval(defaults::bounce_interval);
   }
 
-  void begin(byte pin_1, byte pin_2) {
+  void begin(uint8_t pin_1, uint8_t pin_2) {
     has_two_pins = true;
 
     bounce[0].attach(pin_1, INPUT_PULLUP);
@@ -102,7 +102,7 @@ private:
   ResponsiveAnalogRead pot;
 
 public:
-  void begin(byte pin) { pot.begin(pin, true, defaults::snap_multiplier); }
+  void begin(uint8_t pin) { pot.begin(pin, true, defaults::snap_multiplier); }
 
   void update() { pot.update(); }
 

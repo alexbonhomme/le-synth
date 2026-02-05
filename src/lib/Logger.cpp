@@ -4,9 +4,9 @@
 
 namespace AutosaveLib {
 
-byte Logger::level_;
+uint8_t Logger::level_;
 
-void Logger::begin(byte level, long baudRate) {
+void Logger::begin(uint8_t level, long baudRate) {
 #ifdef DEBUG
   Serial.begin(baudRate);
 
@@ -19,7 +19,7 @@ void Logger::begin(byte level, long baudRate) {
 #endif
 }
 
-void Logger::print(const char *message, byte level) {
+void Logger::print(const char *message, uint8_t level) {
 #ifdef DEBUG
   if (Logger::getLevel() >= level) {
     Serial.print(message);
@@ -27,27 +27,27 @@ void Logger::print(const char *message, byte level) {
 #endif
 }
 
-void Logger::print(int value, byte level) {
+void Logger::print(int value, uint8_t level) {
   print(String(value).c_str(), level);
 }
 
-void Logger::print(float value, byte level) {
+void Logger::print(float value, uint8_t level) {
   print(String(value).c_str(), level);
 }
 
-void Logger::print(double value, byte level) {
+void Logger::print(double value, uint8_t level) {
   print(String(value).c_str(), level);
 }
 
-void Logger::print(bool value, byte level) {
+void Logger::print(bool value, uint8_t level) {
   print(String(value).c_str(), level);
 }
 
-void Logger::print(const String &value, byte level) {
+void Logger::print(const String &value, uint8_t level) {
   print(value.c_str(), level);
 }
 
-void Logger::println(const char *message, byte level) {
+void Logger::println(const char *message, uint8_t level) {
 #ifdef DEBUG
   if (Logger::getLevel() >= level) {
     Serial.println(message);
@@ -55,23 +55,23 @@ void Logger::println(const char *message, byte level) {
 #endif
 }
 
-void Logger::println(int value, byte level) {
+void Logger::println(int value, uint8_t level) {
   println(String(value).c_str(), level);
 }
 
-void Logger::println(float value, byte level) {
+void Logger::println(float value, uint8_t level) {
   println(String(value).c_str(), level);
 }
 
-void Logger::println(double value, byte level) {
+void Logger::println(double value, uint8_t level) {
   println(String(value).c_str(), level);
 }
 
-void Logger::println(bool value, byte level) {
+void Logger::println(bool value, uint8_t level) {
   println(String(value).c_str(), level);
 }
 
-void Logger::println(const String &value, byte level) {
+void Logger::println(const String &value, uint8_t level) {
   println(value.c_str(), level);
 }
 

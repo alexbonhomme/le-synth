@@ -2,9 +2,8 @@
 #define AUTOSAVE_EEPROM_STORAGE_H
 
 #include <array>
-#include <cstddef>
-#include <cstdint>
 #include <vector>
+#include <cstdint>
 
 namespace Autosave {
 
@@ -19,14 +18,14 @@ public:
 
   /** EEPROM layout for MIDI channel (addresses 0–1). */
   static constexpr uint8_t kMidiChannelMagic = 0xA5;
-  static constexpr int kMidiChannelAddrMagic = 0;
-  static constexpr int kMidiChannelAddr = 1;
+  static constexpr uint8_t kMidiChannelAddrMagic = 0;
+  static constexpr uint8_t kMidiChannelAddr = 1;
   static constexpr uint8_t kMidiChannelDefault = 1;
 
   /** EEPROM layout for arp mode steps (addresses 2+). */
-  static constexpr int kArpMagic = 0xA6;
-  static constexpr int kArpAddrMagic = 2;
-  static constexpr int kArpAddrData = 3;
+  static constexpr uint8_t kArpMagic = 0xA6;
+  static constexpr uint8_t kArpAddrMagic = 2;
+  static constexpr uint8_t kArpAddrData = 3;
 
   /**
    * Load MIDI channel from EEPROM (1–16).

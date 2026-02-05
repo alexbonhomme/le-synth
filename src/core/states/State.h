@@ -1,8 +1,6 @@
 #ifndef AUTOSAVE_STATE_H
 #define AUTOSAVE_STATE_H
 
-#include <Arduino.h>
-
 #include "core/Midi.h"
 
 namespace Autosave {
