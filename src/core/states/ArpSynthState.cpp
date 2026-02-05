@@ -5,43 +5,14 @@
 #include "core/Synth.h"
 #include "lib/Logger.h"
 
+#include <array>
 #include <vector>
 
 namespace Autosave {
 
-static void arpStepsGetter(uint8_t mode, uint8_t *len, byte *data) {
-  if (mode >= 3 || len == nullptr || data == nullptr) {
-    return;
-  }
-  const auto &vec = arp_synth_config::arp_mode_steps[mode];
-  *len = static_cast<uint8_t>(vec.size() > EepromStorage::kMaxArpSteps
-                                   ? EepromStorage::kMaxArpSteps
-                                   : vec.size());
-  for (uint8_t i = 0; i < *len; i++) {
-    data[i] = vec[i];
-  }
-}
-
-static void arpStepsSetter(uint8_t mode, uint8_t len, const byte *data) {
-  if (mode >= 3 || data == nullptr || len > EepromStorage::kMaxArpSteps) {
-    return;
-  }
-  auto &vec = arp_synth_config::arp_mode_steps[mode];
-  vec.clear();
-  vec.reserve(len);
-  for (uint8_t i = 0; i < len; i++) {
-    vec.push_back(data[i]);
-  }
-  EepromStorage::saveArpModeSteps(arp_synth_config::arp_mode_steps);
-}
-
-void ArpSynthState::registerArpStepsWithMidi(Midi *midi) {
-  if (midi != nullptr) {
-    midi->setArpStepsSysexHandlers(arpStepsGetter, arpStepsSetter);
-  }
-}
-
 ArpSynthState *ArpSynthState::instance_ = nullptr;
+
+std::array<std::vector<uint8_t>, 3> ArpSynthState::arp_mode_steps = {};
 
 ArpSynthState::~ArpSynthState() {
   if (synth_ != nullptr && synth_->midi != nullptr) {
@@ -131,8 +102,7 @@ void ArpSynthState::process() {
 }
 
 void ArpSynthState::internalNodeOn_() {
-  const std::vector<uint8_t>& arp_mode_sequence =
-      arp_synth_config::arp_mode_steps[arp_mod_];
+  const std::vector<uint8_t> &arp_mode_sequence = ArpSynthState::arp_mode_steps[arp_mod_];
 
   if (arp_mode_index_ >= arp_mode_sequence.size()) {
     arp_mode_index_ = 0;
@@ -152,9 +122,7 @@ void ArpSynthState::internalNodeOff_() {
   current_note_ = {0, 0};
 }
 
-void ArpSynthState::noteOn(MidiNote note) {
-  notes_.push_back(note);
-}
+void ArpSynthState::noteOn(MidiNote note) { notes_.push_back(note); }
 
 void ArpSynthState::noteOff(MidiNote note) {
   if (notes_.empty()) {
@@ -171,6 +139,40 @@ void ArpSynthState::noteOff(MidiNote note) {
 
       break;
     }
+  }
+}
+
+static void arpStepsGetter(uint8_t mode, uint8_t *len, byte *data) {
+  if (mode >= 3 || len == nullptr || data == nullptr) {
+    return;
+  }
+  const auto &vec = ArpSynthState::arp_mode_steps[mode];
+  *len = static_cast<uint8_t>(vec.size() > EepromStorage::kMaxArpSteps
+                                  ? EepromStorage::kMaxArpSteps
+                                  : vec.size());
+  for (uint8_t i = 0; i < *len; i++) {
+    data[i] = vec[i];
+  }
+}
+
+static void arpStepsSetter(uint8_t mode, uint8_t len, const byte *data) {
+  if (mode >= 3 || data == nullptr || len > EepromStorage::kMaxArpSteps) {
+    return;
+  }
+
+  auto &vec = ArpSynthState::arp_mode_steps[mode];
+  vec.clear();
+  vec.reserve(len);
+  for (uint8_t i = 0; i < len; i++) {
+    vec.push_back(data[i]);
+  }
+
+  EepromStorage::saveArpModeSteps(ArpSynthState::arp_mode_steps);
+}
+
+void ArpSynthState::registerArpStepsWithMidi(Midi *midi) {
+  if (midi != nullptr) {
+    midi->setArpStepsSysexHandlers(arpStepsGetter, arpStepsSetter);
   }
 }
 } // namespace Autosave

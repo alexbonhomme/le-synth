@@ -28,7 +28,7 @@ void Synth::begin() {
   hardware->begin();
   audio->begin();
   midi->begin();
-  EepromStorage::loadArpModeSteps(arp_synth_config::arp_mode_steps);
+  EepromStorage::loadArpModeSteps(ArpSynthState::arp_mode_steps);
   ArpSynthState::registerArpStepsWithMidi(midi);
   state_->begin();
 
