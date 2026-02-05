@@ -2,6 +2,7 @@
 #include "lib/Logger.h"
 #include "states/MonoSynthState.h"
 #include "states/PolySynthState.h"
+#include "states/ArpSynthState.h"
 
 namespace Autosave {
 
@@ -60,8 +61,12 @@ void Synth::updateMode() {
     AutosaveLib::Logger::info("Initializing Polyphonic synth state");
     changeState(new PolySynthState());
     return;
+  case 2:
+    AutosaveLib::Logger::info("Initializing Arp synth state");
+    changeState(new ArpSynthState());
+    return;
   default:
-    AutosaveLib::Logger::warn("Not implemented yet! Mode: " + String(mode));
+    AutosaveLib::Logger::error("Unknown mode: " + String(mode));
     return;
   }
 }

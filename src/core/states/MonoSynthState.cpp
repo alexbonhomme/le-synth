@@ -30,6 +30,8 @@ void MonoSynthState::begin() {
 }
 
 void MonoSynthState::noteOn(byte note, byte velocity) {
+  AutosaveLib::Logger::debug("MonoSynthState::noteOn: " + String(note));
+
   current_note_ = note;
   float sustain = (float)velocity / 127.0f;
 
@@ -51,6 +53,8 @@ void MonoSynthState::noteOn(byte note, byte velocity) {
 }
 
 void MonoSynthState::noteOff(byte note, byte velocity) {
+  AutosaveLib::Logger::debug("MonoSynthState::noteOff: " + String(note));
+
   AudioNoInterrupts();
 
   synth_->audio->noteOff(0, true);

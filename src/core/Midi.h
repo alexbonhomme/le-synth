@@ -33,6 +33,10 @@ public:
                                         byte velocity));
   void setHandleNoteOff(void (*callback)(byte channel, byte note,
                                          byte velocity));
+  void setHandleClock(void (*callback)(void));
+  void setHandleStart(void (*callback)(void));
+  void setHandleContinue(void (*callback)(void));
+  void setHandleStop(void (*callback)(void));
 
   void begin();
   void setChannel(byte channel);

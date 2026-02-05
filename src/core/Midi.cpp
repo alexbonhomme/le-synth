@@ -39,6 +39,26 @@ void Midi::setHandleNoteOff(void (*callback)(byte channel, byte note,
   MIDI.setHandleNoteOff(callback);
 }
 
+void Midi::setHandleClock(void (*callback)(void)) {
+  usbMIDI.setHandleClock(callback);
+  MIDI.setHandleClock(callback);
+}
+
+void Midi::setHandleStart(void (*callback)(void)) {
+  usbMIDI.setHandleStart(callback);
+  MIDI.setHandleStart(callback);
+}
+
+void Midi::setHandleContinue(void (*callback)(void)) {
+  usbMIDI.setHandleContinue(callback);
+  MIDI.setHandleContinue(callback);
+}
+
+void Midi::setHandleStop(void (*callback)(void)) {
+  usbMIDI.setHandleStop(callback);
+  MIDI.setHandleStop(callback);
+}
+
 void Midi::handleSysEx(byte *array, unsigned size) {
   if (instance_ == nullptr || array == nullptr) {
     return;
