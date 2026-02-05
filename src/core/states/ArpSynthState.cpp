@@ -60,7 +60,7 @@ void ArpSynthState::onClockTick() {
   }
 
   if (clock_tick_count_ == arp_synth_config::clock_ticks_per_sixteenth - 2) {
-    if (current_note_.note == 0) {
+    if (current_note_.number == 0) {
       return;
     }
 
@@ -86,7 +86,7 @@ void ArpSynthState::onStop() {
   arp_mode_index_ = 0;
   notes_.clear();
 
-  MonoSynthState::noteOff(0, 0);
+  MonoSynthState::noteOff({0, 0});
 }
 
 void ArpSynthState::process() {
@@ -110,26 +110,26 @@ void ArpSynthState::internalNodeOn_() {
   arp_mode_index_ = (arp_mode_index_ + 1) % arp_mode_sequence.size();
 
   // @TODO: Handle velocity
-  MonoSynthState::noteOn(current_note_.note, current_note_.velocity);
+  MonoSynthState::noteOn(current_note_);
 }
 
 void ArpSynthState::internalNodeOff_() {
-  MonoSynthState::noteOff(0, 0);
+  MonoSynthState::noteOff({0, 0});
 
   current_note_ = {0, 0};
 }
 
-void ArpSynthState::noteOn(uint8_t note, uint8_t velocity) {
-  notes_.push_back({note, velocity});
+void ArpSynthState::noteOn(MidiNote note) {
+  notes_.push_back(note);
 }
 
-void ArpSynthState::noteOff(uint8_t note, uint8_t velocity) {
+void ArpSynthState::noteOff(MidiNote note) {
   if (notes_.empty()) {
     return;
   }
 
   for (uint8_t i = 0; i < notes_.size(); i++) {
-    if (notes_[i].note == note) {
+    if (notes_[i].number == note.number) {
       notes_.erase(notes_.begin() + i);
 
       if (arp_mode_index_ > 0 && arp_mode_index_ >= i) {

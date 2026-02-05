@@ -4,6 +4,7 @@
 #include <array>
 #include <vector>
 
+#include "core/Midi.h"
 #include "MonoSynthState.h"
 
 namespace Autosave {
@@ -18,10 +19,7 @@ static std::array<std::vector<uint8_t>, 3> arp_mode_steps{
      std::vector<uint8_t>({0, 2, 1, 3})}};
 } // namespace arp_synth_config
 
-struct Note {
-  uint8_t note;
-  uint8_t velocity;
-};
+
 
 class ArpSynthState : public MonoSynthState {
 private:
@@ -30,8 +28,8 @@ private:
   /** Counts MIDI clock ticks; 24 per quarter note, so 6 = 1/16 note. */
   uint8_t clock_tick_count_ = 0;
 
-  std::vector<Note> notes_;
-  Note current_note_ = {0, 0};
+  std::vector<MidiNote> notes_;
+  MidiNote current_note_ = {0, 0};
 
   uint8_t arp_mod_ = 0;
   uint8_t arp_mode_index_ = 0;
@@ -50,8 +48,8 @@ public:
 
   void begin() override;
   void process() override;
-  void noteOn(uint8_t note, uint8_t velocity) override;
-  void noteOff(uint8_t note, uint8_t velocity) override;
+  void noteOn(MidiNote note) override;
+  void noteOff(MidiNote note) override;
 
   /** Static callback for MIDI clock; forwards to active instance. */
   static void onMidiClock();

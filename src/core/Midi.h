@@ -25,6 +25,11 @@ static constexpr byte SYSEX_GET_CHANNEL_COMMAND[] = {0xF0, 0x7D, 0x00, 0x03,
                                                      0xF7};
 } // namespace midi_config
 
+struct MidiNote {
+  uint8_t number;
+  uint8_t velocity;
+};
+
 class Midi {
 public:
   Midi();

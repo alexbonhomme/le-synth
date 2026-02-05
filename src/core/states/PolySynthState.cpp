@@ -19,7 +19,7 @@ void PolySynthState::begin() {
   AudioInterrupts();
 }
 
-void PolySynthState::noteOn(byte note, byte velocity) {
+void PolySynthState::noteOn(MidiNote note) {
   if (note_count_ >= audio_config::voices_number) {
     return;
   }
@@ -28,7 +28,7 @@ void PolySynthState::noteOn(byte note, byte velocity) {
 
   // Looking for the first empty oscillator
   while (index < audio_config::voices_number) {
-    if (current_notes_[index] == 0) {
+    if (current_notes_[index].number == 0) {
       break;
     }
 
@@ -38,8 +38,8 @@ void PolySynthState::noteOn(byte note, byte velocity) {
   current_notes_[index] = note;
   note_count_++;
 
-  float sustain = (float)velocity / 127.0f;
-  float freq = Audio::computeFrequencyFromNote(note);
+  float sustain = (float)note.velocity / 127.0f;
+  float freq = Audio::computeFrequencyFromNote(note.number);
 
   AudioNoInterrupts();
 
@@ -52,7 +52,7 @@ void PolySynthState::noteOn(byte note, byte velocity) {
   AudioInterrupts();
 }
 
-void PolySynthState::noteOff(byte note, byte velocity) {
+void PolySynthState::noteOff(MidiNote note) {
   if (note_count_ <= 0 || note_count_ >= audio_config::voices_number) {
     return;
   }
@@ -61,7 +61,7 @@ void PolySynthState::noteOff(byte note, byte velocity) {
 
   // Looking for the first note that matches the note
   while (index < audio_config::voices_number) {
-    if (current_notes_[index] == note) {
+    if (current_notes_[index].number == note.number) {
       break;
     }
 
@@ -73,7 +73,7 @@ void PolySynthState::noteOff(byte note, byte velocity) {
     return;
   }
 
-  current_notes_[index] = 0;
+  current_notes_[index] = {0, 0};
   note_count_--;
 
   AudioNoInterrupts();

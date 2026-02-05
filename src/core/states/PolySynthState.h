@@ -5,6 +5,7 @@
 
 #include "State.h"
 #include "core/Audio.h"
+#include "core/Midi.h"
 
 namespace Autosave {
 
@@ -12,14 +13,14 @@ class PolySynthState : public State {
 private:
   float detune_ = 0.0f;
 
-  byte current_notes_[audio_config::voices_number] = {0};
-  byte note_count_ = 0;
+  MidiNote current_notes_[audio_config::voices_number];
+  uint8_t note_count_ = 0;
 
 public:
   void begin() override;
   void process() override;
-  void noteOn(byte note, byte velocity) override;
-  void noteOff(byte note, byte velocity) override;
+  void noteOn(MidiNote note) override;
+  void noteOff(MidiNote note) override;
 };
 } // namespace Autosave
 

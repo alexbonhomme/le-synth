@@ -29,11 +29,11 @@ void MonoSynthState::begin() {
   AudioInterrupts();
 }
 
-void MonoSynthState::noteOn(byte note, byte velocity) {
+void MonoSynthState::noteOn(MidiNote note) {
   current_note_ = note;
-  float sustain = (float)velocity / 127.0f;
+  float sustain = (float)note.velocity / 127.0f;
 
-  float freq = Audio::computeFrequencyFromNote(current_note_);
+  float freq = Audio::computeFrequencyFromNote(note.number);
   float freq_2 = freq * detune_;
   float freq_sub = freq / 2.0f;
 
@@ -50,7 +50,7 @@ void MonoSynthState::noteOn(byte note, byte velocity) {
   AudioInterrupts();
 }
 
-void MonoSynthState::noteOff(byte note, byte velocity) {
+void MonoSynthState::noteOff(MidiNote note) {
   AudioNoInterrupts();
 
   synth_->audio->noteOff(0, true);
@@ -94,7 +94,7 @@ void MonoSynthState::process() {
       detune_ = detune_ * 1.3333333333333333f;
     }
 
-    float frequency = Audio::computeFrequencyFromNote(current_note_) * detune_;
+    float frequency = Audio::computeFrequencyFromNote(current_note_.number) * detune_;
 
     synth_->audio->updateOscillatorFrequency(1, frequency);
   }

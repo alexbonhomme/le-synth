@@ -5,18 +5,20 @@
 
 #include "State.h"
 #include "lib/Logger.h"
+#include "core/Midi.h"
+
 namespace Autosave {
 
 class MonoSynthState : public State {
 private:
   float detune_ = 0.0f;
-  byte current_note_ = 0;
+  MidiNote current_note_ = {0, 0};
 
 public:
   void begin() override;
   void process() override;
-  void noteOn(byte note, byte velocity) override;
-  void noteOff(byte note, byte velocity) override;
+  void noteOn(MidiNote note) override;
+  void noteOff(MidiNote note) override;
 };
 } // namespace Autosave
 

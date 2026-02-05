@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+#include "core/Midi.h"
+
 namespace Autosave {
 class Synth;
 
@@ -17,8 +19,8 @@ public:
 
   virtual void begin() = 0;
   virtual void process();
-  virtual void noteOn(byte note, byte velocity) = 0;
-  virtual void noteOff(byte note, byte velocity) = 0;
+  virtual void noteOn(MidiNote note) = 0;
+  virtual void noteOff(MidiNote note) = 0;
 };
 } // namespace Autosave
 

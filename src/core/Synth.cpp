@@ -1,8 +1,8 @@
 #include "Synth.h"
 #include "lib/Logger.h"
+#include "states/ArpSynthState.h"
 #include "states/MonoSynthState.h"
 #include "states/PolySynthState.h"
-#include "states/ArpSynthState.h"
 
 namespace Autosave {
 
@@ -44,9 +44,9 @@ void Synth::process() {
 
   state_->process();
 
-// #ifdef DEBUG
-//   debugAudioUsage();
-// #endif
+  // #ifdef DEBUG
+  //   debugAudioUsage();
+  // #endif
 }
 
 void Synth::updateMode() {
@@ -103,7 +103,7 @@ void Synth::changeState(State *state) {
   state_->begin();
 }
 
-float fixMidiNote(byte note) {
+uint8_t fixMidiNote(byte note) {
   // MIDI libray seems to add one octave to the note number for no reason
   note = note - 12;
 
@@ -115,7 +115,7 @@ void Synth::midiNoteOn(byte channel, byte note, byte velocity) {
     return;
   }
 
-  instance_->state_->noteOn(fixMidiNote(note), velocity);
+  instance_->state_->noteOn({fixMidiNote(note), velocity});
 }
 
 void Synth::midiNoteOff(byte channel, byte note, byte velocity) {
@@ -123,7 +123,7 @@ void Synth::midiNoteOff(byte channel, byte note, byte velocity) {
     return;
   }
 
-  instance_->state_->noteOff(fixMidiNote(note), velocity);
+  instance_->state_->noteOff({fixMidiNote(note), velocity});
 }
 
 } // namespace Autosave
