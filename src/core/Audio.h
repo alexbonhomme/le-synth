@@ -80,6 +80,7 @@ public:
   void updateRelease(float release);
 
   void normalizeMasterGain(uint8_t oscillators_count) {
+    // @TODO: use table instead of log2f to improve performance
     float gain_correction = 3.0f / std::log2f(oscillators_count + 10.0f);
     float normalized_gain = audio_config::master_gain * gain_correction;
 
@@ -106,6 +107,8 @@ private:
   bool percussive_mode_ = false;
   float attack_time = 1.0f;
   float release_time = 15.0f;
+
+  float computeGainFromWaveform(uint8_t waveform);
 };
 
 } // namespace Autosave

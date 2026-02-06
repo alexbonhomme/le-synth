@@ -36,7 +36,7 @@ void State::process() {
       synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_BANDLIMIT_SQUARE);
       break;
     default:
-      synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_BANDLIMIT_PULSE);
+      synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_TRIANGLE_VARIABLE);
       break;
     }
 

@@ -52,22 +52,16 @@ void Audio::begin() {
     oscillators[i].begin(audio_config::init_waveform);
     oscillators[i].frequency(audio_config::init_frequency);
     oscillators[i].amplitude(audio_config::init_amplitude);
-  }
 
-  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     envelopes[i].attack(attack_time);
     envelopes[i].hold(0);
     envelopes[i].decay(0);
     envelopes[i].sustain(1.0);
     envelopes[i].release(release_time);
+
+    mixers[i / 4].gain(i % 4, audio_config::osc_mix_gain);
   }
 
-  for (uint8_t i = 0; i < 2; i++) {
-    mixers[i].gain(0, audio_config::osc_mix_gain);
-    mixers[i].gain(1, audio_config::osc_mix_gain);
-    mixers[i].gain(2, audio_config::osc_mix_gain);
-    mixers[i].gain(3, audio_config::osc_mix_gain);
-  }
   mixer_master.gain(0, 0.5f);
   mixer_master.gain(1, 0.5f);
 
@@ -136,35 +130,18 @@ void Audio::updateAllOscillatorsAmplitude(float amplitude) {
 }
 
 void Audio::updateOscillatorWaveform(uint8_t index, uint8_t waveform) {
+  float gain = computeGainFromWaveform(waveform);
+
   oscillators[index].begin(waveform);
-
-  float gain = audio_config::osc_mix_gain;
-  // if (waveform == WAVEFORM_BANDLIMIT_PULSE) {
-  //   oscillators[index].pulseWidth(0.25);
-
-  //   // Gain correction for pulse waveform
-  //   gain = gain * 2.0f;
-  // }
-
-  mixers[index % audio_config::voices_number].gain(index % 4, gain);
+  mixers[index / 4].gain(index % 4, gain);
 }
 
 void Audio::updateAllOscillatorsWaveform(uint8_t waveform) {
-  // @TODO: 
-  // float gain = audio_config::osc_mix_gain;
-  // if (waveform == WAVEFORM_BANDLIMIT_PULSE) {
-  //   oscillators[index].pulseWidth(0.25);
-
-  //   // Gain correction for pulse waveform
-  //   gain = gain * 2.0f;
-  // }
-
+  float gain = computeGainFromWaveform(waveform);
 
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(waveform);
-
-    // Gain correction
-    // mixers[i % audio_config::voices_number].gain(i % 4, gain);
+    mixers[i / 4].gain(i % 4, gain);
   }
 }
 
@@ -205,15 +182,23 @@ void Audio::updateRelease(float release) {
     }
 
     filter_envelope.decay(release_time);
-  } else {
-    for (uint8_t i = 0; i < audio_config::voices_number; i++) {
-      envelopes[i].release(release_time);
-    }
 
-    filter_envelope.release(release_time);
+    return;
   }
+
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
+    envelopes[i].release(release_time);
+  }
+
+  filter_envelope.release(release_time);
 }
 
+/**
+ * Get the frequency of the note from the MIDI note number.
+ *
+ * @param note The MIDI note number.
+ * @return The frequency of the note.
+ */
 float Audio::computeFrequencyFromNote(uint8_t note) {
   if (note < 0) {
     return 0.0f;
@@ -224,6 +209,25 @@ float Audio::computeFrequencyFromNote(uint8_t note) {
   }
 
   return audio_config::midi_note_to_frequency[note];
+}
+
+/**
+ * Compute the gain of the waveform based on the waveform type.
+ *
+ * @param waveform The waveform type.
+ * @return The gain of the waveform.
+ */
+float Audio::computeGainFromWaveform(uint8_t waveform) {
+  float gain = audio_config::osc_mix_gain;
+
+  if (waveform == WAVEFORM_BANDLIMIT_SQUARE) {
+    return gain * 0.8f;
+  }
+  if (waveform == WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE) {
+    return gain * 0.85f;
+  }
+
+  return gain; // No gain correction
 }
 
 /**
