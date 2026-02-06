@@ -21,7 +21,7 @@ class ChannelEditor extends HTMLElement {
       </div>
 
       <span class="block text-xs uppercase tracking-wider text-gray-500 mb-2">Select MIDI channel</span>
-      <channel-grid id="channelGrid" class="grid grid-cols-8 gap-1"></channel-grid>
+      <channel-grid id="channelGrid"></channel-grid>
     `;
   }
 

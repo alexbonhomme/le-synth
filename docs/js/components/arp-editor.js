@@ -19,7 +19,10 @@ class ArpEditor extends HTMLElement {
         <p class="text-xs text-gray-500 mb-4 leading-relaxed">
           Click a cell to set each step's value (1–8); length sets how many steps are used.
         </p>
-        <arp-modes id="arpModes" class="flex flex-col gap-5"></arp-modes>
+        <arp-modes
+          id="arpModes"
+          class="flex flex-col gap-5 lg:flex-row lg:gap-6 lg:items-stretch"
+        ></arp-modes>
       </section>
     `;
   }

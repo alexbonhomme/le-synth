@@ -17,7 +17,8 @@ class ArpModes extends HTMLElement {
     const modeLabels = ['Mode A', 'Mode B', 'Mode C'];
     for (let mode = 0; mode < 3; mode++) {
       const block = document.createElement('div');
-      block.className = 'arp-mode-block bg-[#0f0f12] border border-surface-border rounded-lg px-4 py-3';
+      block.className =
+        'arp-mode-block bg-[#0f0f12] border border-surface-border rounded-lg px-4 py-3 w-full lg:flex-1 lg:min-w-0';
 
       const headerRow = document.createElement('div');
       headerRow.className = 'flex items-center justify-between gap-4 mb-3 px-0.5';

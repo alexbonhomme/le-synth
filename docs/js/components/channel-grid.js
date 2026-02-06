@@ -44,14 +44,18 @@ class ChannelGrid extends HTMLElement {
   }
 
   render() {
-    this.innerHTML = '';
+    this.innerHTML = `
+      <div class="channel-grid-inner grid gap-1 grid-cols-8 lg:grid-cols-[repeat(16,minmax(0,1fr))]"></div>
+    `;
+    const inner = this.querySelector('.channel-grid-inner');
+    if (!inner) return;
     for (let ch = 1; ch <= 16; ch++) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = BUTTON_BASE_CLASSES;
       btn.dataset.channel = String(ch);
       btn.textContent = String(ch);
-      this.appendChild(btn);
+      inner.appendChild(btn);
     }
     this.applyActiveClasses();
   }
@@ -66,8 +70,8 @@ class ChannelGrid extends HTMLElement {
     this.querySelectorAll('button[data-channel]').forEach((btn) => {
       const ch = parseInt(btn.dataset.channel ?? '0', 10);
       const isActive = ch === this._activeChannel;
-      ACTIVE_CLASSES.forEach((c) => btn.classList.toggle(c, isActive));
-      INACTIVE_CLASSES.forEach((c) => btn.classList.toggle(c, !isActive));
+      ACTIVE_CLASSES.forEach((c) => { btn.classList.toggle(c, isActive); });
+      INACTIVE_CLASSES.forEach((c) => { btn.classList.toggle(c, !isActive); });
     });
   }
 }
