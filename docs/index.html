@@ -26,26 +26,7 @@
 </head>
 <body class="min-h-screen bg-[#0f0f12] text-[#e8e6e3] font-mono flex flex-col items-center justify-center p-6">
   <main class="w-full max-w-[420px] bg-surface border border-surface-border rounded-xl p-8 shadow-xl">
-    <h1 class="text-xl font-semibold tracking-wide">ICARUS</h1>
-    <p class="text-sm text-gray-500 mb-6">MIDI configuration tool</p>
-
-    <div id="status" class="text-sm rounded-lg border px-3 py-2.5 mb-6 border-surface-border text-gray-500">
-      Request MIDI access to continue.
-    </div>
-
-    <div id="currentChannelWrap" class="flex items-baseline justify-between gap-4 px-4 py-3 bg-[#0f0f12] border border-surface-border rounded-lg mb-5">
-      <span class="text-xs uppercase tracking-wider text-gray-500">Current MIDI channel</span>
-      <span id="currentChannel" class="text-lg font-semibold text-accent">—</span>
-    </div>
-
-    <span class="block text-xs uppercase tracking-wider text-gray-500 mb-2">Select MIDI channel</span>
-    <div id="channelGrid" class="grid grid-cols-8 gap-1 mb-6"></div>
-
-    <section id="arpSection" class="mt-8 pt-6 border-t border-surface-border">
-      <h2 class="text-base font-semibold mb-1">ARP modes</h2>
-      <p class="text-xs text-gray-500 mb-4 leading-relaxed">Click a cell to set each step's value (1–8); length sets how many steps are used.</p>
-      <div id="arpModes" class="flex flex-col gap-5"></div>
-    </section>
+    <icarus-config-app></icarus-config-app>
   </main>
 
   <script type="module" src="js/app.js"></script>

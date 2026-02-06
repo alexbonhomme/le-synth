@@ -1,141 +1,222 @@
 import {
-  buildSysex,
-  buildGetChannelSysex,
-  parseChannelFromSysex,
   buildGetArpStepsSysex,
-  parseArpStepsFromSysex,
+  buildGetChannelSysex,
   buildSetArpStepsSysex,
+  buildSysex,
+  parseArpStepsFromSysex,
+  parseChannelFromSysex,
 } from './sysex.js';
-import {
-  setStatus,
-  setActiveChannel,
-  setCurrentChannelDisplay,
-  buildChannelButtons,
-  buildArpStepsUI,
-  updateArpStepsFromData,
-} from './ui.js';
 import { findOutputByName, attachInputListeners, requestMIDIAccess } from './midi.js';
 import { MIDI_DEVICE_NAME } from './constants.js';
+import './components/midi-status.js';
+import './components/channel-grid.js';
+import './components/arp-modes.js';
 
-(() => {
-  const statusEl = document.getElementById('status');
-  const channelGrid = document.getElementById('channelGrid');
-  const currentChannelEl = document.getElementById('currentChannel');
-  const arpModes = document.getElementById('arpModes');
+class IcarusConfigApp extends HTMLElement {
+  constructor() {
+    super();
+    this.midiAccess = null;
+    this.icarusOutput = null;
 
-  let midiAccess = null;
-  let icarusOutput = null;
+    this.statusEl = null;
+    this.channelGrid = null;
+    this.currentChannelEl = null;
+    this.arpModes = null;
 
-  function resolveIcarus() {
-    icarusOutput = midiAccess ? findOutputByName(midiAccess, MIDI_DEVICE_NAME) : null;
-    return icarusOutput;
+    this.handleMidiMessage = this.handleMidiMessage.bind(this);
+    this.handleStateChange = this.handleStateChange.bind(this);
   }
 
-  function sendChannel(channel) {
-    if (!icarusOutput) return;
+  connectedCallback() {
+    this.render();
+    this.cacheElements();
+    this.buildUi();
+    this.initMidi();
+  }
+
+  render() {
+    this.innerHTML = `
+      <h1 class="text-xl font-semibold tracking-wide">ICARUS</h1>
+      <p class="text-sm text-gray-500 mb-6">MIDI configuration tool</p>
+
+      <midi-status id="status"></midi-status>
+
+      <div id="currentChannelWrap" class="flex items-baseline justify-between gap-4 px-4 py-3 bg-[#0f0f12] border border-surface-border rounded-lg mb-5">
+        <span class="text-xs uppercase tracking-wider text-gray-500">Current MIDI channel</span>
+        <span id="currentChannel" class="text-lg font-semibold text-accent">—</span>
+      </div>
+
+      <span class="block text-xs uppercase tracking-wider text-gray-500 mb-2">Select MIDI channel</span>
+      <channel-grid id="channelGrid" class="grid grid-cols-8 gap-1 mb-6"></channel-grid>
+
+      <section id="arpSection" class="mt-8 pt-6 border-t border-surface-border">
+        <h2 class="text-base font-semibold mb-1">ARP modes</h2>
+        <p class="text-xs text-gray-500 mb-4 leading-relaxed">
+          Click a cell to set each step's value (1–8); length sets how many steps are used.
+        </p>
+        <arp-modes id="arpModes" class="flex flex-col gap-5"></arp-modes>
+      </section>
+    `;
+  }
+
+  cacheElements() {
+    this.statusEl = this.querySelector('#status');
+    this.channelGrid = this.querySelector('#channelGrid');
+    this.currentChannelEl = this.querySelector('#currentChannel');
+    this.arpModes = this.querySelector('#arpModes');
+  }
+
+  buildUi() {
+    if (!this.channelGrid || !this.arpModes) return;
+    this.channelGrid.addEventListener('channel-select', (event) => {
+      const channel = event.detail?.channel;
+      if (channel) this.sendChannel(channel);
+    });
+    this.arpModes.addEventListener('arp-change', (event) => {
+      const { mode, steps } = event.detail ?? {};
+      if (mode != null && Array.isArray(steps)) {
+        this.sendArpSteps(mode, steps);
+      }
+    });
+  }
+
+  resolveIcarus() {
+    this.icarusOutput = this.midiAccess ? findOutputByName(this.midiAccess, MIDI_DEVICE_NAME) : null;
+    return this.icarusOutput;
+  }
+
+  sendChannel(channel) {
+    if (!this.icarusOutput || !this.channelGrid || !this.currentChannelEl || !this.statusEl) return;
 
     const data = buildSysex(channel);
     if (!data) return;
 
     try {
-      icarusOutput.port.send(data);
-      setActiveChannel(channelGrid, channel);
-      setCurrentChannelDisplay(currentChannelEl, channel);
-      setStatus(statusEl, 'Sent channel ' + channel + ' to ' + icarusOutput.port.name + '.', 'connected');
+      this.icarusOutput.port.send(data);
+      if (typeof this.channelGrid.setActiveChannel === 'function') {
+        this.channelGrid.setActiveChannel(channel);
+      }
+      this.updateCurrentChannelDisplay(channel);
+      this.statusEl.setStatus('Sent channel ' + channel + ' to ' + this.icarusOutput.port.name + '.', 'connected');
     } catch (err) {
-      setStatus(statusEl, 'Send failed: ' + err.message, 'error');
+      this.statusEl.setStatus('Send failed: ' + err.message, 'error');
     }
   }
 
-  function onMidiMessage(e) {
-    const channel = parseChannelFromSysex(e.data);
+  handleMidiMessage(event) {
+    if (!this.channelGrid || !this.currentChannelEl || !this.statusEl || !this.arpModes) return;
+
+    const channel = parseChannelFromSysex(event.data);
     if (channel != null) {
-      setCurrentChannelDisplay(currentChannelEl, channel);
-      setActiveChannel(channelGrid, channel);
+      this.updateCurrentChannelDisplay(channel);
+      if (typeof this.channelGrid.setActiveChannel === 'function') {
+        this.channelGrid.setActiveChannel(channel);
+      }
       return;
     }
-    const arpSteps = parseArpStepsFromSysex(e.data);
-    if (arpSteps != null && arpModes) {
-      updateArpStepsFromData(arpModes, arpSteps);
-      setStatus(statusEl, 'Arp steps loaded from device.', 'connected');
+
+    const arpSteps = parseArpStepsFromSysex(event.data);
+    if (arpSteps != null && typeof this.arpModes.setFromData === 'function') {
+      this.arpModes.setFromData(arpSteps);
+      this.statusEl.setStatus('Arp steps loaded from device.', 'connected');
     }
   }
 
-  function requestCurrentChannel() {
-    if (!icarusOutput) {
-      setCurrentChannelDisplay(currentChannelEl, null);
+  requestCurrentChannel() {
+    if (!this.currentChannelEl) return;
+
+    if (!this.icarusOutput) {
+      this.updateCurrentChannelDisplay(null);
       return;
     }
-    setCurrentChannelDisplay(currentChannelEl, null);
+
+    this.updateCurrentChannelDisplay(null);
     try {
-      icarusOutput.port.send(buildGetChannelSysex());
-    } catch (_) {}
+      this.icarusOutput.port.send(buildGetChannelSysex());
+    } catch {
+      // ignore send errors here; status updates will reflect connection state
+    }
   }
 
-  function requestArpSteps() {
-    if (!icarusOutput) return;
+  requestArpSteps() {
+    if (!this.icarusOutput) return;
     try {
-      icarusOutput.port.send(buildGetArpStepsSysex());
-    } catch (_) {}
+      this.icarusOutput.port.send(buildGetArpStepsSysex());
+    } catch {
+      // ignore send errors here; status updates will reflect connection state
+    }
   }
 
-  function sendArpSteps(mode, steps) {
-    if (!icarusOutput) return;
+  sendArpSteps(mode, steps) {
+    if (!this.icarusOutput || !this.statusEl) return;
     const data = buildSetArpStepsSysex(mode, steps);
     if (!data) return;
+
     try {
-      icarusOutput.port.send(data);
-      setStatus(statusEl, 'Arp steps mode ' + mode + ' sent to device.', 'connected');
+      this.icarusOutput.port.send(data);
+      this.statusEl.setStatus('Arp steps mode ' + mode + ' sent to device.', 'connected');
     } catch (err) {
-      setStatus(statusEl, 'Send arp steps failed: ' + err.message, 'error');
+      this.statusEl.setStatus('Send arp steps failed: ' + err.message, 'error');
     }
   }
 
-  function onStateChange() {
-    resolveIcarus();
-    if (icarusOutput) {
-      setStatus(statusEl, 'Connected to ' + icarusOutput.port.name + '.', 'connected');
-    } else if (midiAccess && midiAccess.outputs.size > 0) {
-      setStatus(statusEl, 'Icarus MIDI device not found. Connect the device and refresh.', 'error');
+  handleStateChange() {
+    if (!this.statusEl) return;
+
+    this.resolveIcarus();
+    if (this.icarusOutput) {
+      this.statusEl.setStatus('Connected to ' + this.icarusOutput.port.name + '.', 'connected');
+    } else if (this.midiAccess && this.midiAccess.outputs.size > 0) {
+      this.statusEl.setStatus('Icarus MIDI device not found. Connect the device and refresh.', 'error');
     } else {
-      setStatus(statusEl, 'No MIDI outputs available. Connect Icarus and refresh.', 'error');
+      this.statusEl.setStatus('No MIDI outputs available. Connect Icarus and refresh.', 'error');
     }
-    requestCurrentChannel();
-    requestArpSteps();
+    this.requestCurrentChannel();
+    this.requestArpSteps();
   }
 
-  function init() {
-    setStatus(statusEl, 'Requesting MIDI access…', 'pending');
+  initMidi() {
+    if (!this.statusEl) return;
+
+    this.statusEl.setStatus('Requesting MIDI access…', 'pending');
 
     requestMIDIAccess()
       .then((access) => {
-        midiAccess = access;
-        attachInputListeners(midiAccess, onMidiMessage);
+        this.midiAccess = access;
+        attachInputListeners(this.midiAccess, this.handleMidiMessage);
         access.onstatechange = () => {
-          onStateChange();
-          attachInputListeners(midiAccess, onMidiMessage);
+          this.handleStateChange();
+          attachInputListeners(this.midiAccess, this.handleMidiMessage);
         };
 
-        resolveIcarus();
-        if (icarusOutput) {
-          setStatus(statusEl, 'Connected to ' + icarusOutput.port.name + '.', 'connected');
+        this.resolveIcarus();
+        if (this.icarusOutput) {
+          this.statusEl.setStatus('Connected to ' + this.icarusOutput.port.name + '.', 'connected');
         } else if (access.outputs.size > 0) {
-          setStatus(statusEl, 'Icarus MIDI device not found. Connect the device and refresh.', 'error');
+          this.statusEl.setStatus('Icarus MIDI device not found. Connect the device and refresh.', 'error');
         } else {
-          setStatus(statusEl, 'No MIDI device connected. Connect Icarus and refresh.', 'error');
+          this.statusEl.setStatus('No MIDI device connected. Connect Icarus and refresh.', 'error');
         }
-        requestCurrentChannel();
-        requestArpSteps();
+        this.requestCurrentChannel();
+        this.requestArpSteps();
       })
       .catch((err) => {
-        const msg = err.message.includes('not supported')
-          ? err.message
-          : 'Cannot connect: ' + err.message;
-        setStatus(statusEl, msg, 'error');
+        const msg = err.message.includes('not supported') ? err.message : 'Cannot connect: ' + err.message;
+        this.statusEl.setStatus(msg, 'error');
       });
   }
 
-  buildChannelButtons(channelGrid, sendChannel);
-  buildArpStepsUI(arpModes, (mode, steps) => sendArpSteps(mode, steps));
-  init();
-})();
+  updateCurrentChannelDisplay(channel) {
+    if (!this.currentChannelEl) return;
+    if (channel != null) {
+      this.currentChannelEl.textContent = String(channel);
+      this.currentChannelEl.className = 'text-lg font-semibold text-accent';
+    } else {
+      this.currentChannelEl.textContent = '—';
+      this.currentChannelEl.className = 'text-lg font-normal text-gray-500';
+    }
+  }
+}
+
+customElements.define('icarus-config-app', IcarusConfigApp);
+
