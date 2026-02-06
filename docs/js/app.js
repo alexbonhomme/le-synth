@@ -6,11 +6,11 @@ import {
   parseArpStepsFromSysex,
   parseChannelFromSysex,
 } from './sysex.js';
-import { findOutputByName, attachInputListeners, requestMIDIAccess } from './midi.js';
+import { attachInputListeners, findOutputByName, requestMIDIAccess } from './midi.js';
 import { MIDI_DEVICE_NAME } from './constants.js';
 import './components/midi-status.js';
-import './components/channel-grid.js';
-import './components/arp-modes.js';
+import './components/channel-editor.js';
+import './components/arp-editor.js';
 
 class IcarusConfigApp extends HTMLElement {
   constructor() {
@@ -19,9 +19,8 @@ class IcarusConfigApp extends HTMLElement {
     this.icarusOutput = null;
 
     this.statusEl = null;
-    this.channelGrid = null;
-    this.currentChannelEl = null;
-    this.arpModes = null;
+    this.channelEditor = null;
+    this.arpEditor = null;
 
     this.handleMidiMessage = this.handleMidiMessage.bind(this);
     this.handleStateChange = this.handleStateChange.bind(this);
@@ -30,6 +29,7 @@ class IcarusConfigApp extends HTMLElement {
   connectedCallback() {
     this.render();
     this.cacheElements();
+    this.setEditingVisible(false);
     this.buildUi();
     this.initMidi();
   }
@@ -41,38 +41,25 @@ class IcarusConfigApp extends HTMLElement {
 
       <midi-status id="status"></midi-status>
 
-      <div id="currentChannelWrap" class="flex items-baseline justify-between gap-4 px-4 py-3 bg-[#0f0f12] border border-surface-border rounded-lg mb-5">
-        <span class="text-xs uppercase tracking-wider text-gray-500">Current MIDI channel</span>
-        <span id="currentChannel" class="text-lg font-semibold text-accent">—</span>
-      </div>
+      <channel-editor id="channelEditor" class="block mb-6"></channel-editor>
 
-      <span class="block text-xs uppercase tracking-wider text-gray-500 mb-2">Select MIDI channel</span>
-      <channel-grid id="channelGrid" class="grid grid-cols-8 gap-1 mb-6"></channel-grid>
-
-      <section id="arpSection" class="mt-8 pt-6 border-t border-surface-border">
-        <h2 class="text-base font-semibold mb-1">ARP modes</h2>
-        <p class="text-xs text-gray-500 mb-4 leading-relaxed">
-          Click a cell to set each step's value (1–8); length sets how many steps are used.
-        </p>
-        <arp-modes id="arpModes" class="flex flex-col gap-5"></arp-modes>
-      </section>
+      <arp-editor id="arpEditor"></arp-editor>
     `;
   }
 
   cacheElements() {
     this.statusEl = this.querySelector('#status');
-    this.channelGrid = this.querySelector('#channelGrid');
-    this.currentChannelEl = this.querySelector('#currentChannel');
-    this.arpModes = this.querySelector('#arpModes');
+    this.channelEditor = this.querySelector('#channelEditor');
+    this.arpEditor = this.querySelector('#arpEditor');
   }
 
   buildUi() {
-    if (!this.channelGrid || !this.arpModes) return;
-    this.channelGrid.addEventListener('channel-select', (event) => {
+    if (!this.channelEditor || !this.arpEditor) return;
+    this.channelEditor.addEventListener('channel-select', (event) => {
       const channel = event.detail?.channel;
       if (channel) this.sendChannel(channel);
     });
-    this.arpModes.addEventListener('arp-change', (event) => {
+    this.arpEditor.addEventListener('arp-change', (event) => {
       const { mode, steps } = event.detail ?? {};
       if (mode != null && Array.isArray(steps)) {
         this.sendArpSteps(mode, steps);
@@ -86,17 +73,16 @@ class IcarusConfigApp extends HTMLElement {
   }
 
   sendChannel(channel) {
-    if (!this.icarusOutput || !this.channelGrid || !this.currentChannelEl || !this.statusEl) return;
+    if (!this.icarusOutput || !this.channelEditor || !this.statusEl) return;
 
     const data = buildSysex(channel);
     if (!data) return;
 
     try {
       this.icarusOutput.port.send(data);
-      if (typeof this.channelGrid.setActiveChannel === 'function') {
-        this.channelGrid.setActiveChannel(channel);
+      if (typeof this.channelEditor.setChannel === 'function') {
+        this.channelEditor.setChannel(channel);
       }
-      this.updateCurrentChannelDisplay(channel);
       this.statusEl.setStatus('Sent channel ' + channel + ' to ' + this.icarusOutput.port.name + '.', 'connected');
     } catch (err) {
       this.statusEl.setStatus('Send failed: ' + err.message, 'error');
@@ -104,33 +90,36 @@ class IcarusConfigApp extends HTMLElement {
   }
 
   handleMidiMessage(event) {
-    if (!this.channelGrid || !this.currentChannelEl || !this.statusEl || !this.arpModes) return;
+    if (!this.channelEditor || !this.statusEl || !this.arpEditor) return;
 
     const channel = parseChannelFromSysex(event.data);
     if (channel != null) {
-      this.updateCurrentChannelDisplay(channel);
-      if (typeof this.channelGrid.setActiveChannel === 'function') {
-        this.channelGrid.setActiveChannel(channel);
+      if (typeof this.channelEditor.setChannel === 'function') {
+        this.channelEditor.setChannel(channel);
       }
       return;
     }
 
     const arpSteps = parseArpStepsFromSysex(event.data);
-    if (arpSteps != null && typeof this.arpModes.setFromData === 'function') {
-      this.arpModes.setFromData(arpSteps);
+    if (arpSteps != null && typeof this.arpEditor.setFromData === 'function') {
+      this.arpEditor.setFromData(arpSteps);
       this.statusEl.setStatus('Arp steps loaded from device.', 'connected');
     }
   }
 
   requestCurrentChannel() {
-    if (!this.currentChannelEl) return;
+    if (!this.channelEditor) return;
 
     if (!this.icarusOutput) {
-      this.updateCurrentChannelDisplay(null);
+      if (typeof this.channelEditor.setChannel === 'function') {
+        this.channelEditor.setChannel(null);
+      }
       return;
     }
 
-    this.updateCurrentChannelDisplay(null);
+    if (typeof this.channelEditor.setChannel === 'function') {
+      this.channelEditor.setChannel(null);
+    }
     try {
       this.icarusOutput.port.send(buildGetChannelSysex());
     } catch {
@@ -166,10 +155,13 @@ class IcarusConfigApp extends HTMLElement {
     this.resolveIcarus();
     if (this.icarusOutput) {
       this.statusEl.setStatus('Connected to ' + this.icarusOutput.port.name + '.', 'connected');
+      this.setEditingVisible(true);
     } else if (this.midiAccess && this.midiAccess.outputs.size > 0) {
       this.statusEl.setStatus('Icarus MIDI device not found. Connect the device and refresh.', 'error');
+      this.setEditingVisible(false);
     } else {
       this.statusEl.setStatus('No MIDI outputs available. Connect Icarus and refresh.', 'error');
+      this.setEditingVisible(false);
     }
     this.requestCurrentChannel();
     this.requestArpSteps();
@@ -192,10 +184,13 @@ class IcarusConfigApp extends HTMLElement {
         this.resolveIcarus();
         if (this.icarusOutput) {
           this.statusEl.setStatus('Connected to ' + this.icarusOutput.port.name + '.', 'connected');
+          this.setEditingVisible(true);
         } else if (access.outputs.size > 0) {
           this.statusEl.setStatus('Icarus MIDI device not found. Connect the device and refresh.', 'error');
+          this.setEditingVisible(false);
         } else {
           this.statusEl.setStatus('No MIDI device connected. Connect Icarus and refresh.', 'error');
+          this.setEditingVisible(false);
         }
         this.requestCurrentChannel();
         this.requestArpSteps();
@@ -203,18 +198,14 @@ class IcarusConfigApp extends HTMLElement {
       .catch((err) => {
         const msg = err.message.includes('not supported') ? err.message : 'Cannot connect: ' + err.message;
         this.statusEl.setStatus(msg, 'error');
+        this.setEditingVisible(false);
       });
   }
 
-  updateCurrentChannelDisplay(channel) {
-    if (!this.currentChannelEl) return;
-    if (channel != null) {
-      this.currentChannelEl.textContent = String(channel);
-      this.currentChannelEl.className = 'text-lg font-semibold text-accent';
-    } else {
-      this.currentChannelEl.textContent = '—';
-      this.currentChannelEl.className = 'text-lg font-normal text-gray-500';
-    }
+  setEditingVisible(isVisible) {
+    const action = isVisible ? 'remove' : 'add';
+    this.channelEditor?.classList[action]('hidden');
+    this.arpEditor?.classList[action]('hidden');
   }
 }
 
