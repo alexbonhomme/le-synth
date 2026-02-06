@@ -2,7 +2,6 @@
 
 #include "State.h"
 #include "core/Synth.h"
-#include "lib/Logger.h"
 
 namespace Autosave {
 
@@ -26,8 +25,6 @@ void State::process() {
   // Switch 1 changes the waveform type of the main oscillators
   if (synth_->hardware->changed(hardware::CTRL_SWITCH_1)) {
     uint8_t waveform = (uint8_t)synth_->hardware->read(hardware::CTRL_SWITCH_1);
-
-    AutosaveLib::Logger::debug("Updating waveform: " + String(waveform));
 
     AudioNoInterrupts();
 

@@ -150,8 +150,21 @@ void Audio::updateOscillatorWaveform(uint8_t index, uint8_t waveform) {
 }
 
 void Audio::updateAllOscillatorsWaveform(uint8_t waveform) {
+  // @TODO: 
+  // float gain = audio_config::osc_mix_gain;
+  // if (waveform == WAVEFORM_BANDLIMIT_PULSE) {
+  //   oscillators[index].pulseWidth(0.25);
+
+  //   // Gain correction for pulse waveform
+  //   gain = gain * 2.0f;
+  // }
+
+
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(waveform);
+
+    // Gain correction
+    // mixers[i % audio_config::voices_number].gain(i % 4, gain);
   }
 }
 

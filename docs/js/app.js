@@ -1,12 +1,14 @@
 import {
+  attachInputListeners,
   buildGetArpStepsSysex,
   buildGetChannelSysex,
   buildSetArpStepsSysex,
   buildSysex,
+  findOutputByName,
   parseArpStepsFromSysex,
   parseChannelFromSysex,
-} from './sysex.js';
-import { attachInputListeners, findOutputByName, requestMIDIAccess } from './midi.js';
+  requestMIDIAccess,
+} from './midi.js';
 import { MIDI_DEVICE_NAME } from './constants.js';
 import './components/midi-status.js';
 import './components/channel-editor.js';
