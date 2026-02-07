@@ -289,10 +289,10 @@ float Audio::computeGainFromWaveform(uint8_t waveform) {
   float gain = audio_config::osc_mix_gain;
 
   if (waveform == WAVEFORM_BANDLIMIT_SQUARE) {
-    return gain * 0.85f;
+    return gain * 0.75f;
   }
   if (waveform == WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE) {
-    return gain * 0.95f;
+    return gain * 0.85f;
   }
 
   return gain; // No gain correction
