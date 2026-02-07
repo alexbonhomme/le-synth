@@ -28,18 +28,5 @@ export const CUSTOM_WAVEFORM_BANKS = [
   { id: 2, label: 'Overtone', count: 44 },
 ];
 
-/** Folder names for waveform PNG assets under assets/AKWF-png/ (index = bank id). */
-export const WAVEFORM_PNG_FOLDERS = ['fmsynth', 'granular', 'overtone'];
-
-/**
- * Path to the PNG asset for a given bank and 0-based waveform index.
- * @param {number} bank - Bank id (0=FM, 1=Granular, 2=Overtone)
- * @param {number} index - 0-based waveform index
- * @returns {string} Relative path to the PNG, e.g. "assets/AKWF-png/AKWF_fmsynth/AKWF_fmsynth_0001.png"
- */
-export function getWaveformImagePath(bank, index) {
-  const folder = WAVEFORM_PNG_FOLDERS[Math.max(0, Math.min(2, bank))] ?? 'fmsynth';
-  const oneBased = Math.max(1, index + 1);
-  const pad = String(oneBased).padStart(4, '0');
-  return `assets/AKWF-png/AKWF_${folder}/AKWF_${folder}_${pad}.png`;
-}
+/** JSON waveform data files (one per bank), relative to docs. */
+export const WAVEFORM_JSON_FILES = ['fmsynth', 'granular', 'overtone'];

@@ -17,7 +17,7 @@ class ArpEditor extends HTMLElement {
       <section class="mt-8 pt-6 border-t border-surface-border">
         <h2 class="text-base font-semibold mb-1">ARP modes</h2>
         <p class="text-xs text-gray-500 mb-4 leading-relaxed">
-          Click a cell to set each step's value (1–8); length sets how many steps are used.
+          Click a cell to set each step's note (1-8). Length determines how many steps the arpeggio will play.
         </p>
         <arp-modes
           id="arpModes"
