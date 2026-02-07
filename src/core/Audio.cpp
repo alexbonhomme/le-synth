@@ -65,9 +65,16 @@ void Audio::begin() {
     custom_ptr = AKWF_OVERTONE[42];
   }
 
+  // Per-voice detune (oscillator slop): small fixed cents offset per voice
+  const float kVoiceDetuneCents[audio_config::voices_number] = {
+      -2.0f, -1.2f, -0.5f, 0.0f, 0.5f, 1.2f, 2.0f, -1.5f};
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
+    voice_detune_[i] = powf(2.0f, kVoiceDetuneCents[i] / 1200.0f);
+  }
+
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(audio_config::init_waveform);
-    oscillators[i].frequency(audio_config::init_frequency);
+    oscillators[i].frequency(audio_config::init_frequency * voice_detune_[i]);
     oscillators[i].amplitude(audio_config::init_amplitude);
     oscillators[i].arbitraryWaveform(custom_ptr, 172.0f);
 
@@ -128,12 +135,12 @@ void Audio::updateLFOFrequency(float frequency) { lfo_fm.frequency(frequency); }
 void Audio::updateLFOAmplitude(float amplitude) { lfo_fm.amplitude(amplitude); }
 
 void Audio::updateOscillatorFrequency(uint8_t index, float frequency) {
-  oscillators[index].frequency(frequency);
+  oscillators[index].frequency(frequency * voice_detune_[index]);
 }
 
 void Audio::updateAllOscillatorsFrequency(float frequency) {
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
-    oscillators[i].frequency(frequency);
+    oscillators[i].frequency(frequency * voice_detune_[i]);
   }
 }
 

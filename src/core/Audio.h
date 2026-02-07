@@ -120,6 +120,9 @@ private:
   uint8_t custom_waveform_bank_ = 2;
   uint8_t custom_waveform_index_ = 42;
 
+  /** Per-voice detune multipliers (oscillator slop); applied to frequency. */
+  float voice_detune_[audio_config::voices_number];
+
   const int16_t *getCustomWaveformPointer(uint8_t bank, uint8_t index) const;
   float computeGainFromWaveform(uint8_t waveform);
 };
