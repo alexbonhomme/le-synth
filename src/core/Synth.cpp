@@ -54,6 +54,7 @@ void Synth::process() {
   }
 
   state_->process();
+  audio->updateDrift();
 
 #ifdef DEBUG
   // debugAudioUsage();

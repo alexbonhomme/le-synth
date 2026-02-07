@@ -3,6 +3,7 @@
 
 #include <Audio.h>
 #include <cmath>
+#include <cstdint>
 
 #include "lib/Logger.h"
 #include "waveforms/Waveforms.h"
@@ -21,7 +22,7 @@ static constexpr uint8_t init_waveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
 static const int16_t *const init_custom_waveform = AKWF_OVERTONE[42];
 
 static constexpr float osc_mix_gain = 0.25f;
-static constexpr float master_gain = 0.48f;
+static constexpr float master_gain = 0.75f;
 
 static constexpr float filter_env_gain = 0.5f;
 
@@ -74,15 +75,21 @@ public:
   void updateOscillatorFrequency(uint8_t index, float frequency);
   void updateAllOscillatorsFrequency(float frequency);
 
+  /** Advance slow pitch drift (call from main loop, rate-limited internally).
+   */
+  void updateDrift();
+
   void updateOscillatorAmplitude(uint8_t index, float amplitude);
   void updateAllOscillatorsAmplitude(float amplitude);
 
   void updateAllOscillatorsWaveform(uint8_t waveform);
 
-  /** Custom (arbitrary) waveform: bank 0=FM, 1=Granular, 2=Overtone; index within bank. */
+  /** Custom (arbitrary) waveform: bank 0=FM, 1=Granular, 2=Overtone; index
+   * within bank. */
   void setCustomWaveform(uint8_t bank, uint8_t index);
   void getCustomWaveform(uint8_t *out_bank, uint8_t *out_index) const;
-  /** Apply current custom waveform table to all oscillators (when in arbitrary mode). */
+  /** Apply current custom waveform table to all oscillators (when in arbitrary
+   * mode). */
   void applyCustomWaveform();
 
   void updateAttack(float attack);
@@ -122,6 +129,17 @@ private:
 
   /** Per-voice detune multipliers (oscillator slop); applied to frequency. */
   float voice_detune_[audio_config::voices_number];
+
+  /** Per-voice base frequency (nominal pitch before detune and drift). */
+  float voice_base_frequency_[audio_config::voices_number];
+  /** Per-voice drift offset in cents (random walk); applied with detune. */
+  float voice_drift_cents_[audio_config::voices_number];
+  /** Per-voice drift multiplier (1.0 ± small); applied with detune. */
+  float voice_drift_multiplier_[audio_config::voices_number];
+  /** Last time updateDrift() ran (ms). */
+  uint32_t last_drift_update_ms_ = 0;
+
+  void applyVoiceFrequency(uint8_t index);
 
   const int16_t *getCustomWaveformPointer(uint8_t bank, uint8_t index) const;
   float computeGainFromWaveform(uint8_t waveform);

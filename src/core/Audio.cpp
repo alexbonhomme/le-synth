@@ -4,6 +4,14 @@
 #include "core/EepromStorage.h"
 #include "lib/Logger.h"
 
+namespace {
+// Random-walk drift: max offset ±this many cents; small steps make it wander.
+constexpr float kDriftCentsAmplitude = 0.2f;
+// Step size per update (cents); smaller = smoother, larger = more unstable.
+constexpr float kDriftStepCents = 0.08f;
+constexpr uint8_t kDriftUpdateIntervalMs = 30;
+} // namespace
+
 namespace Autosave {
 
 enum CustomWaveformBank {
@@ -67,14 +75,22 @@ void Audio::begin() {
 
   // Per-voice detune (oscillator slop): small fixed cents offset per voice
   const float kVoiceDetuneCents[audio_config::voices_number] = {
-      -2.0f, -1.2f, -0.5f, 0.0f, 0.5f, 1.2f, 2.0f, -1.5f};
+      -1.5f, -0.8f, -0.4f, 0.1f, 0.5f, 0.9f, 1.4f, -1.2f};
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     voice_detune_[i] = powf(2.0f, kVoiceDetuneCents[i] / 1200.0f);
   }
 
+  // Slow pitch drift: per-voice random-walk (unstable, non-periodic)
+  randomSeed(micros());
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
+    voice_base_frequency_[i] = audio_config::init_frequency;
+    voice_drift_cents_[i] = 0.0f;
+    voice_drift_multiplier_[i] = 1.0f;
+  }
+
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(audio_config::init_waveform);
-    oscillators[i].frequency(audio_config::init_frequency * voice_detune_[i]);
+    applyVoiceFrequency(i);
     oscillators[i].amplitude(audio_config::init_amplitude);
     oscillators[i].arbitraryWaveform(custom_ptr, 172.0f);
 
@@ -102,6 +118,8 @@ void Audio::begin() {
   filter_envelope.sustain(1.0);
   filter_envelope.release(release_time);
   filter_envelope.releaseNoteOn(0);
+
+  last_drift_update_ms_ = millis();
 }
 
 void Audio::noteOn(uint8_t index, float sustain, bool triggerFilterEnvelope) {
@@ -134,13 +152,44 @@ void Audio::updateLFOFrequency(float frequency) { lfo_fm.frequency(frequency); }
 
 void Audio::updateLFOAmplitude(float amplitude) { lfo_fm.amplitude(amplitude); }
 
+void Audio::applyVoiceFrequency(uint8_t index) {
+  float f = voice_base_frequency_[index] * voice_detune_[index] *
+             voice_drift_multiplier_[index];
+  oscillators[index].frequency(f);
+}
+
 void Audio::updateOscillatorFrequency(uint8_t index, float frequency) {
-  oscillators[index].frequency(frequency * voice_detune_[index]);
+  voice_base_frequency_[index] = frequency;
+  applyVoiceFrequency(index);
 }
 
 void Audio::updateAllOscillatorsFrequency(float frequency) {
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
-    oscillators[i].frequency(frequency * voice_detune_[i]);
+    voice_base_frequency_[i] = frequency;
+    applyVoiceFrequency(i);
+  }
+}
+
+void Audio::updateDrift() {
+  uint32_t now = millis();
+  if (now - last_drift_update_ms_ < kDriftUpdateIntervalMs) {
+    return;
+  }
+  last_drift_update_ms_ = now;
+
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
+    // Random step: ±kDriftStepCents per update (non-periodic wander)
+    float step = (static_cast<float>(random(0, 2001) - 1000) / 1000.0f) *
+                 kDriftStepCents;
+    voice_drift_cents_[i] += step;
+    if (voice_drift_cents_[i] > kDriftCentsAmplitude) {
+      voice_drift_cents_[i] = kDriftCentsAmplitude;
+    } else if (voice_drift_cents_[i] < -kDriftCentsAmplitude) {
+      voice_drift_cents_[i] = -kDriftCentsAmplitude;
+    }
+    voice_drift_multiplier_[i] =
+        powf(2.0f, voice_drift_cents_[i] / 1200.0f);
+    applyVoiceFrequency(i);
   }
 }
 
