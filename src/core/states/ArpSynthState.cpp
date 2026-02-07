@@ -8,6 +8,11 @@
 #include <array>
 #include <vector>
 
+namespace {
+// 24 MIDI clocks per quarter → 6 per 1/16
+constexpr uint8_t kClockTicksPerSixteenth = 6;
+} // namespace
+
 namespace Autosave {
 
 ArpSynthState *ArpSynthState::instance_ = nullptr;
@@ -63,7 +68,7 @@ void ArpSynthState::onClockTick() {
     return;
   }
 
-  if (clock_tick_count_ == arp_synth_config::clock_ticks_per_sixteenth - 2) {
+  if (clock_tick_count_ == kClockTicksPerSixteenth - 2) {
     if (current_note_.number == 0) {
       return;
     }
@@ -71,7 +76,7 @@ void ArpSynthState::onClockTick() {
     internalNodeOff_();
   }
 
-  if (clock_tick_count_ >= arp_synth_config::clock_ticks_per_sixteenth) {
+  if (clock_tick_count_ >= kClockTicksPerSixteenth) {
     clock_tick_count_ = 0;
 
     if (notes_.empty()) {

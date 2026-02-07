@@ -8,11 +8,6 @@
 
 namespace Autosave {
 
-namespace arp_synth_config {
-// 24 MIDI clocks per quarter → 6 per 1/16
-constexpr uint8_t clock_ticks_per_sixteenth = 6;
-} // namespace arp_synth_config
-
 class ArpSynthState : public MonoSynthState {
 private:
   static ArpSynthState *instance_;

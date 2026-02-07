@@ -4,6 +4,23 @@
 #include <EEPROM.h>
 #include <cstdint>
 
+namespace {
+// EEPROM layout for MIDI channel (addresses 0–1).
+constexpr uint8_t kMidiChannelMagic = 0xA5;
+constexpr uint8_t kMidiChannelAddrMagic = 0;
+constexpr uint8_t kMidiChannelAddr = 1;
+constexpr uint8_t kMidiChannelDefault = 1;
+// EEPROM layout for arp mode steps (addresses 2+).
+constexpr uint8_t kArpMagic = 0xA6;
+constexpr uint8_t kArpAddrMagic = 2;
+constexpr uint8_t kArpAddrData = 3;
+// EEPROM layout for custom waveform (bank + index).
+constexpr uint8_t kCustomWaveformMagic = 0xA7;
+constexpr uint8_t kCustomWaveformAddrMagic = 30;
+constexpr uint8_t kCustomWaveformAddrBank = 31;
+constexpr uint8_t kCustomWaveformAddrIndex = 32;
+} // namespace
+
 namespace Autosave {
 
 uint8_t EepromStorage::loadMidiChannel() {
@@ -35,15 +52,15 @@ void EepromStorage::loadArpModeSteps(ArpModeSteps &out) {
   for (size_t m = 0; m < out.size(); m++) {
     uint8_t len = EEPROM.read(addr);
     addr++;
-    if (len > kMaxArpSteps) {
-      len = static_cast<uint8_t>(kMaxArpSteps);
+    if (len > EepromStorage::kMaxArpSteps) {
+      len = static_cast<uint8_t>(EepromStorage::kMaxArpSteps);
     }
     out[m].clear();
     out[m].reserve(len);
     for (uint8_t i = 0; i < len; i++) {
       out[m].push_back(EEPROM.read(addr + i));
     }
-    addr += kMaxArpSteps;
+    addr += EepromStorage::kMaxArpSteps;
   }
   AutosaveLib::Logger::debug("Loaded arp mode steps from EEPROM");
 }
@@ -53,29 +70,29 @@ void EepromStorage::saveArpModeSteps(const ArpModeSteps &data) {
   int addr = kArpAddrData;
   for (size_t m = 0; m < data.size(); m++) {
     uint8_t len = static_cast<uint8_t>(data[m].size());
-    if (len > kMaxArpSteps) {
-      len = static_cast<uint8_t>(kMaxArpSteps);
+    if (len > EepromStorage::kMaxArpSteps) {
+      len = static_cast<uint8_t>(EepromStorage::kMaxArpSteps);
     }
     EEPROM.write(addr, len);
     addr++;
-    for (uint8_t i = 0; i < kMaxArpSteps; i++) {
+    for (uint8_t i = 0; i < EepromStorage::kMaxArpSteps; i++) {
       EEPROM.write(addr + i, i < len ? data[m][i] : 0);
     }
-    addr += kMaxArpSteps;
+    addr += EepromStorage::kMaxArpSteps;
   }
   AutosaveLib::Logger::debug("Saved arp mode steps to EEPROM");
 }
 
 void EepromStorage::loadCustomWaveform(uint8_t &out_bank, uint8_t &out_index) {
   if (EEPROM.read(kCustomWaveformAddrMagic) != kCustomWaveformMagic) {
-    out_bank = kCustomWaveformBankDefault;
-    out_index = kCustomWaveformIndexDefault;
+    out_bank = EepromStorage::kCustomWaveformBankDefault;
+    out_index = EepromStorage::kCustomWaveformIndexDefault;
     return;
   }
   out_bank = static_cast<uint8_t>(EEPROM.read(kCustomWaveformAddrBank));
   out_index = static_cast<uint8_t>(EEPROM.read(kCustomWaveformAddrIndex));
   if (out_bank > 2) {
-    out_bank = kCustomWaveformBankDefault;
+    out_bank = EepromStorage::kCustomWaveformBankDefault;
   }
   AutosaveLib::Logger::debug("Loaded custom waveform from EEPROM: bank " +
                             String(out_bank) + " index " + String(out_index));

@@ -16,28 +16,13 @@ public:
   /** Max steps per arp mode. */
   static constexpr uint8_t kMaxArpSteps = 8;
 
-  /** EEPROM layout for MIDI channel (addresses 0–1). */
-  static constexpr uint8_t kMidiChannelMagic = 0xA5;
-  static constexpr uint8_t kMidiChannelAddrMagic = 0;
-  static constexpr uint8_t kMidiChannelAddr = 1;
-  static constexpr uint8_t kMidiChannelDefault = 1;
-
-  /** EEPROM layout for arp mode steps (addresses 2+). */
-  static constexpr uint8_t kArpMagic = 0xA6;
-  static constexpr uint8_t kArpAddrMagic = 2;
-  static constexpr uint8_t kArpAddrData = 3;
-
-  /** EEPROM layout for custom waveform (bank + index). */
-  static constexpr uint8_t kCustomWaveformMagic = 0xA7;
-  static constexpr uint8_t kCustomWaveformAddrMagic = 30;
-  static constexpr uint8_t kCustomWaveformAddrBank = 31;
-  static constexpr uint8_t kCustomWaveformAddrIndex = 32;
+  /** Default custom waveform (Overtone bank, index 42). Used when EEPROM invalid. */
   static constexpr uint8_t kCustomWaveformBankDefault = 2;  // Overtone
   static constexpr uint8_t kCustomWaveformIndexDefault = 42;
 
   /**
    * Load MIDI channel from EEPROM (1–16).
-   * Returns kMidiChannelDefault if magic invalid or value out of range.
+   * Returns 1 if magic invalid or value out of range.
    */
   static uint8_t loadMidiChannel();
 

@@ -3,13 +3,61 @@
 #include "Audio.h"
 #include "core/EepromStorage.h"
 #include "lib/Logger.h"
+#include "waveforms/Waveforms.h"
 
 namespace {
+constexpr float kInitLfoFmFrequency = 20.0f;
+constexpr float kInitLfoFmAmplitude = 0.0f;
+
+constexpr float kOscMixGain = 0.25f;
+
+constexpr float kFilterEnvGain = 0.5f;
+
 // Random-walk drift: max offset ±this many cents; small steps make it wander.
 constexpr float kDriftCentsAmplitude = 0.2f;
 // Step size per update (cents); smaller = smoother, larger = more unstable.
 constexpr float kDriftStepCents = 0.08f;
 constexpr uint8_t kDriftUpdateIntervalMs = 30;
+
+// Per-voice detune (oscillator slop): small fixed cents offset per voice.
+constexpr float kVoiceDetuneCents[Autosave::audio_config::voices_number] = {
+    -1.5f, -0.8f, -0.4f, 0.1f, 0.5f, 0.9f, 1.4f, -1.2f};
+
+// Initial oscillator state (implementation detail; only used in Audio::begin).
+constexpr float kInitFrequency = 440.0f; // A4
+constexpr float kInitAmplitude = 0.0f;
+constexpr uint8_t kInitWaveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
+constexpr int kInitCustomWaveformIndex = 42; // matches EepromStorage default
+
+// MIDI note (0–127) to frequency (Hz). A4 = 440 Hz at index 69. 8 per line =
+// exact indices.
+constexpr float kMidiNoteToFrequency[128] = {
+    8.175799f,     8.661957f,     9.177024f,    9.722718f,    10.300861f,
+    10.913382f,    11.562326f,    12.249857f,   12.978272f,   13.750000f,
+    14.567618f,    15.433853f,    16.351598f,   17.323914f,   18.354048f,
+    19.445436f,    20.601722f,    21.826764f,   23.124651f,   24.499715f,
+    25.956544f,    27.500000f,    29.135235f,   30.867706f,   32.703196f,
+    34.647829f,    36.708096f,    38.890873f,   41.203445f,   43.653529f,
+    46.249303f,    48.999429f,    51.913087f,   55.000000f,   58.270470f,
+    61.735413f,    65.406391f,    69.295658f,   73.416192f,   77.781746f,
+    82.406889f,    87.307058f,    92.498606f,   97.998859f,   103.826174f,
+    110.000000f,   116.540940f,   123.470825f,  130.812783f,  138.591315f,
+    146.832384f,   155.563492f,   164.813778f,  174.614116f,  184.997211f,
+    195.997718f,   207.652349f,   220.000000f,  233.081881f,  246.941651f,
+    261.625565f,   277.182631f,   293.664768f,  311.126984f,  329.627557f,
+    349.228231f,   369.994423f,   391.995436f,  415.304698f,  440.000000f,
+    466.163762f,   493.883301f,   523.251131f,  554.365262f,  587.329536f,
+    622.253967f,   659.255114f,   698.456463f,  739.988845f,  783.990872f,
+    830.609395f,   880.000000f,   932.327523f,  987.766603f,  1046.502261f,
+    1108.730524f,  1174.659072f,  1244.507935f, 1318.510228f, 1396.912926f,
+    1479.977691f,  1567.981744f,  1661.218790f, 1760.000000f, 1864.655046f,
+    1975.533205f,  2093.004522f,  2217.461048f, 2349.318143f, 2489.015870f,
+    2637.020455f,  2793.825851f,  2959.955382f, 3135.963488f, 3322.437581f,
+    3520.000000f,  3729.310092f,  3951.066410f, 4186.009045f, 4434.922096f,
+    4698.636287f,  4978.031740f,  5274.040911f, 5587.651703f, 5919.910763f,
+    6271.926976f,  6644.875161f,  7040.000000f, 7458.620184f, 7902.132820f,
+    8372.018090f,  8869.844191f,  9397.272573f, 9956.063479f, 10548.081821f,
+    11175.303406f, 11839.821527f, 12543.853951f};
 } // namespace
 
 namespace Autosave {
@@ -60,22 +108,20 @@ void Audio::begin() {
   AudioMemory(20);
 
   // Configure LFO
-  lfo_fm.frequency(audio_config::init_lfo_fm_frequency);
-  lfo_fm.amplitude(audio_config::init_lfo_fm_amplitude);
+  lfo_fm.frequency(kInitLfoFmFrequency);
+  lfo_fm.amplitude(kInitLfoFmAmplitude);
 
   EepromStorage::loadCustomWaveform(custom_waveform_bank_,
                                     custom_waveform_index_);
   const int16_t *custom_ptr =
       getCustomWaveformPointer(custom_waveform_bank_, custom_waveform_index_);
   if (custom_ptr == nullptr) {
-    custom_waveform_bank_ = 2;
-    custom_waveform_index_ = 42;
-    custom_ptr = AKWF_OVERTONE[42];
+    custom_waveform_bank_ = EepromStorage::kCustomWaveformBankDefault;
+    custom_waveform_index_ = EepromStorage::kCustomWaveformIndexDefault;
+    custom_ptr = AKWF_OVERTONE[kInitCustomWaveformIndex];
   }
 
   // Per-voice detune (oscillator slop): small fixed cents offset per voice
-  const float kVoiceDetuneCents[audio_config::voices_number] = {
-      -1.5f, -0.8f, -0.4f, 0.1f, 0.5f, 0.9f, 1.4f, -1.2f};
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     voice_detune_[i] = powf(2.0f, kVoiceDetuneCents[i] / 1200.0f);
   }
@@ -83,15 +129,15 @@ void Audio::begin() {
   // Slow pitch drift: per-voice random-walk (unstable, non-periodic)
   randomSeed(micros());
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
-    voice_base_frequency_[i] = audio_config::init_frequency;
+    voice_base_frequency_[i] = kInitFrequency;
     voice_drift_cents_[i] = 0.0f;
     voice_drift_multiplier_[i] = 1.0f;
   }
 
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
-    oscillators[i].begin(audio_config::init_waveform);
+    oscillators[i].begin(kInitWaveform);
     applyVoiceFrequency(i);
-    oscillators[i].amplitude(audio_config::init_amplitude);
+    oscillators[i].amplitude(kInitAmplitude);
     oscillators[i].arbitraryWaveform(custom_ptr, 172.0f);
 
     envelopes[i].attack(attack_time);
@@ -100,7 +146,7 @@ void Audio::begin() {
     envelopes[i].sustain(1.0);
     envelopes[i].release(release_time);
 
-    mixers[i / 4].gain(i % 4, audio_config::osc_mix_gain);
+    mixers[i / 4].gain(i % 4, kOscMixGain);
   }
 
   mixer_master.gain(0, 0.5f);
@@ -109,7 +155,7 @@ void Audio::begin() {
   amplifier_master.gain(audio_config::master_gain);
 
   // Configure DC signal for filter envelope (constant voltage source)
-  dc_signal.amplitude(audio_config::filter_env_gain);
+  dc_signal.amplitude(kFilterEnvGain);
 
   // Configure filter envelope with the same ADSR values as envelopes
   filter_envelope.attack(attack_time);
@@ -154,7 +200,7 @@ void Audio::updateLFOAmplitude(float amplitude) { lfo_fm.amplitude(amplitude); }
 
 void Audio::applyVoiceFrequency(uint8_t index) {
   float f = voice_base_frequency_[index] * voice_detune_[index] *
-             voice_drift_multiplier_[index];
+            voice_drift_multiplier_[index];
   oscillators[index].frequency(f);
 }
 
@@ -187,8 +233,7 @@ void Audio::updateDrift() {
     } else if (voice_drift_cents_[i] < -kDriftCentsAmplitude) {
       voice_drift_cents_[i] = -kDriftCentsAmplitude;
     }
-    voice_drift_multiplier_[i] =
-        powf(2.0f, voice_drift_cents_[i] / 1200.0f);
+    voice_drift_multiplier_[i] = powf(2.0f, voice_drift_cents_[i] / 1200.0f);
     applyVoiceFrequency(i);
   }
 }
@@ -332,7 +377,7 @@ float Audio::computeFrequencyFromNote(uint8_t note) {
     note = 127;
   }
 
-  return audio_config::midi_note_to_frequency[note];
+  return kMidiNoteToFrequency[note];
 }
 
 /**
@@ -342,7 +387,7 @@ float Audio::computeFrequencyFromNote(uint8_t note) {
  * @return The gain of the waveform.
  */
 float Audio::computeGainFromWaveform(uint8_t waveform) {
-  float gain = audio_config::osc_mix_gain;
+  float gain = kOscMixGain;
 
   if (waveform == WAVEFORM_BANDLIMIT_SQUARE) {
     return gain * 0.75f;
