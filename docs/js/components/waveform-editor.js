@@ -1,5 +1,5 @@
 import './waveform-selector.js';
-import { WAVEFORM_JSON_FILES } from '../constants.js';
+import { CUSTOM_WAVEFORM_BANKS, WAVEFORM_JSON_FILES } from '../constants.js';
 
 const WAVEFORM_BG = '#0f0f12';
 const WAVEFORM_STROKE = '#7d9cd4';
@@ -8,18 +8,70 @@ const WAVEFORM_INT16_RANGE = 65536;
 const WAVEFORM_PADDING_PX = 16;
 const WAVEFORM_LINE_WIDTH_PX = 2;
 
+const FAVORITES_STORAGE_KEY = 'icarus-favorite-waveforms';
+const FAVORITES_SLOT_COUNT = 8;
+
+/**
+ * @param {{ bank: number, index: number }|null} entry
+ * @returns {string}
+ */
+function formatFavoriteLabel(entry) {
+  if (!entry || typeof entry.bank !== 'number' || typeof entry.index !== 'number') return '—';
+  const bankInfo = CUSTOM_WAVEFORM_BANKS[Math.max(0, Math.min(2, entry.bank))];
+  const label = bankInfo ? bankInfo.label : '?';
+  return `${label} #${entry.index + 1}`;
+}
+
+/**
+ * @returns {({ bank: number, index: number }|null)[]}
+ */
+function loadFavoritesFromStorage() {
+  try {
+    const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
+    if (!raw) return Array(FAVORITES_SLOT_COUNT).fill(null);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return Array(FAVORITES_SLOT_COUNT).fill(null);
+    const result = [];
+    for (let i = 0; i < FAVORITES_SLOT_COUNT; i++) {
+      const item = parsed[i];
+      if (item && typeof item.bank === 'number' && typeof item.index === 'number') {
+        result.push({ bank: item.bank, index: item.index });
+      } else {
+        result.push(null);
+      }
+    }
+    return result;
+  } catch {
+    return Array(FAVORITES_SLOT_COUNT).fill(null);
+  }
+}
+
+/**
+ * @param {({ bank: number, index: number }|null)[]} favorites
+ */
+function saveFavoritesToStorage(favorites) {
+  try {
+    localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+  } catch {
+    // ignore
+  }
+}
+
 class WaveformEditor extends HTMLElement {
   constructor() {
     super();
     this.waveformSelectorEl = null;
     this.canvasEl = null;
     this.bankDataCache = /** @type {Record<number, number[][]>} */ ({});
+    /** @type {({ bank: number, index: number }|null)[]} */
+    this.favorites = loadFavoritesFromStorage();
   }
 
   connectedCallback() {
     this.render();
     this.cacheElements();
     this.bindEvents();
+    this.renderFavoritesLabels();
     this.resizeObserver = new ResizeObserver(() => this.resizeAndDraw());
     if (this.canvasEl) this.resizeObserver.observe(this.canvasEl);
     this.updatePreviewFromSelector();
@@ -37,26 +89,10 @@ class WaveformEditor extends HTMLElement {
           Please select a waveform you want to use in the custom mode. <br/>Those come from the <a href="https://www.adventurekid.se/akrt/waveforms/" target="_blank" rel="noopener noreferrer">Adventure Kid Wave Forms (AKWF)</a> library by Kristoffer Ekstrand.
         </p>
         <div class="flex flex-col gap-4">
-          <div class="flex flex-wrap items-end gap-4">
-            <waveform-selector
-              id="waveformSelector"
-              class="flex flex-wrap gap-4"
-            ></waveform-selector>
-            <div class="flex items-center gap-2">
-              <button
-                type="button"
-                data-role="prev-waveform"
-                class="py-1.5 px-3 text-sm rounded-lg border border-surface-border bg-[#0f0f12] text-[#e8e6e3] hover:border-accent hover:bg-accent/10 focus:outline-none focus:border-accent transition-colors"
-                title="Previous waveform"
-              >← Prev</button>
-              <button
-                type="button"
-                data-role="next-waveform"
-                class="py-1.5 px-3 text-sm rounded-lg border border-surface-border bg-[#0f0f12] text-[#e8e6e3] hover:border-accent hover:bg-accent/10 focus:outline-none focus:border-accent transition-colors"
-                title="Next waveform"
-              >Next →</button>
-            </div>
-          </div>
+          <waveform-selector
+            id="waveformSelector"
+            class="flex flex-wrap items-end gap-2 md:gap-4"
+          ></waveform-selector>
           <div class="flex flex-col gap-1">
             <span class="text-[0.7rem] uppercase tracking-wider text-gray-500">Preview</span>
             <canvas
@@ -65,6 +101,18 @@ class WaveformEditor extends HTMLElement {
               class="block w-full min-w-0 h-64 rounded-lg border border-surface-border"
               style="background: ${WAVEFORM_BG};"
             ></canvas>
+          </div>
+          <div class="flex flex-col gap-2 pt-2 border-t border-surface-border">
+            <span class="text-[0.7rem] uppercase tracking-wider text-gray-500">Favorites</span>
+            <div class="grid md:grid-cols-4 gap-2 md:gap-5" data-role="favorites-container">
+              ${Array.from({ length: FAVORITES_SLOT_COUNT }, (_, i) => `
+                <div class="flex items-center gap-1 min-w-0" data-slot="${i}">
+                  <span class="text-xs text-gray-400 w-20 flex-grow" data-role="favorite-label" data-slot="${i}">—</span>
+                  <button type="button" data-role="load-favorite" data-slot="${i}" class="py-1 px-2 text-xs rounded border border-surface-border bg-[#0f0f12] text-[#e8e6e3] hover:border-accent disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:border-accent" title="Load">Load</button>
+                  <button type="button" data-role="save-favorite" data-slot="${i}" class="py-1 px-2 text-xs rounded border border-surface-border bg-[#0f0f12] text-[#e8e6e3] hover:border-accent focus:outline-none focus:border-accent" title="Save current here">Save</button>
+                </div>
+              `).join('')}
+            </div>
           </div>
         </div>
       </section>
@@ -77,12 +125,19 @@ class WaveformEditor extends HTMLElement {
   }
 
   bindEvents() {
-    this.querySelector('[data-role="prev-waveform"]')?.addEventListener('click', () => {
-      this.waveformSelectorEl?.selectPrevious();
-    });
-    this.querySelector('[data-role="next-waveform"]')?.addEventListener('click', () => {
-      this.waveformSelectorEl?.selectNext();
-    });
+    const favContainer = this.querySelector('[data-role="favorites-container"]');
+    if (favContainer) {
+      favContainer.addEventListener('click', (e) => {
+        const loadBtn = e.target?.closest?.('[data-role="load-favorite"]');
+        const saveBtn = e.target?.closest?.('[data-role="save-favorite"]');
+        const slot = loadBtn?.dataset?.slot ?? saveBtn?.dataset?.slot;
+        if (slot !== undefined) {
+          const i = parseInt(slot, 10);
+          if (loadBtn) this.loadFavorite(i);
+          else if (saveBtn) this.saveFavorite(i);
+        }
+      });
+    }
     if (!this.waveformSelectorEl) return;
     this.waveformSelectorEl.addEventListener('waveform-change', (event) => {
       this.updatePreviewFromSelector();
@@ -205,6 +260,41 @@ class WaveformEditor extends HTMLElement {
     if (!this.waveformSelectorEl || typeof this.waveformSelectorEl.setFromData !== 'function') return;
     this.waveformSelectorEl.setFromData(data);
     this.updatePreviewFromSelector();
+  }
+
+  renderFavoritesLabels() {
+    this.favorites.forEach((entry, i) => {
+      const labelEl = this.querySelector(`[data-role="favorite-label"][data-slot="${i}"]`);
+      const loadBtn = this.querySelector(`[data-role="load-favorite"][data-slot="${i}"]`);
+      if (labelEl) labelEl.textContent = `${i + 1}: ${formatFavoriteLabel(entry)}`;
+      if (loadBtn) loadBtn.disabled = entry == null;
+    });
+  }
+
+  /**
+   * @param {number} slotIndex 0..4
+   */
+  loadFavorite(slotIndex) {
+    const entry = this.favorites[slotIndex];
+    if (!entry) return;
+    this.setFromData(entry);
+    this.dispatchEvent(
+      new CustomEvent('waveform-change', {
+        detail: { bank: entry.bank, index: entry.index },
+        bubbles: true,
+      }),
+    );
+  }
+
+  /**
+   * @param {number} slotIndex 0..4
+   */
+  saveFavorite(slotIndex) {
+    if (!this.waveformSelectorEl || typeof this.waveformSelectorEl.getValue !== 'function') return;
+    const { bank, index } = this.waveformSelectorEl.getValue();
+    this.favorites[slotIndex] = { bank, index };
+    saveFavoritesToStorage(this.favorites);
+    this.renderFavoritesLabels();
   }
 }
 

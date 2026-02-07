@@ -3,6 +3,9 @@ import { CUSTOM_WAVEFORM_BANKS } from '../constants.js';
 const SELECT_STYLE =
   'w-full min-w-0 py-1.5 px-2 text-sm bg-[#0f0f12] border border-surface-border rounded-lg text-[#e8e6e3] focus:outline-none focus:border-accent cursor-pointer';
 
+const NAV_BTN_STYLE =
+  'py-1 px-3 text-sm rounded-lg border border-surface-border bg-[#0f0f12] text-[#e8e6e3] hover:border-accent hover:bg-accent/10 focus:outline-none focus:border-accent transition-colors';
+
 class WaveformSelector extends HTMLElement {
   connectedCallback() {
     if (!this.hasChildNodes()) {
@@ -54,6 +57,26 @@ class WaveformSelector extends HTMLElement {
     indexWrap.appendChild(indexLabel);
     indexWrap.appendChild(indexSelect);
     this.appendChild(indexWrap);
+
+    const navWrap = document.createElement('div');
+    navWrap.className = 'flex flex-row gap-2';
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.className = NAV_BTN_STYLE;
+    prevBtn.textContent = '← Prev';
+    prevBtn.title = 'Previous waveform';
+    prevBtn.dataset.role = 'prev-waveform';
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = NAV_BTN_STYLE;
+    nextBtn.textContent = 'Next →';
+    nextBtn.title = 'Next waveform';
+    nextBtn.dataset.role = 'next-waveform';
+    prevBtn.addEventListener('click', () => this.selectPrevious());
+    nextBtn.addEventListener('click', () => this.selectNext());
+    navWrap.appendChild(prevBtn);
+    navWrap.appendChild(nextBtn);
+    this.appendChild(navWrap);
 
     this.fillIndexOptions(0);
   }
