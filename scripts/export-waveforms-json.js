@@ -6,8 +6,8 @@
  * Each JSON file is an array of waveforms; each waveform is an array of 256 numbers.
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const SRC = path.join(__dirname, '..', 'src', 'waveforms');
 const OUT = path.join(__dirname, '..', 'docs', 'assets', 'waveforms');

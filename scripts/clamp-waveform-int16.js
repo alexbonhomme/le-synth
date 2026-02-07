@@ -4,8 +4,8 @@
  * [-32768, 32767] to fix -Wnarrowing compiler warnings.
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const MIN = -32768;
 const MAX = 32767;
