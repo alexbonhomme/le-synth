@@ -49,9 +49,9 @@ void Synth::process() {
 
   state_->process();
 
-  // #ifdef DEBUG
-  //   debugAudioUsage();
-  // #endif
+  #ifdef DEBUG
+    // debugAudioUsage();
+  #endif
 }
 
 void Synth::updateMode() {

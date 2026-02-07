@@ -8,14 +8,11 @@
 namespace Autosave {
 
 void MonoSynthState::begin() {
+  State::begin();
+
   AutosaveLib::Logger::debug("MonoSynthState::begin");
 
   AudioNoInterrupts();
-
-  // Kill all oscillators in case they were left on from a previous state
-  synth_->audio->noteOffAll();
-  synth_->audio->updateAllOscillatorsAmplitude(0.0f);
-  synth_->audio->updateLFOAmplitude(0.0f);
 
   // Setup oscillators
   synth_->audio->updateOscillatorAmplitude(0, 1.0f);

@@ -5,18 +5,20 @@
 #include <cmath>
 
 #include "lib/Logger.h"
+#include "waveforms/Waveforms.h"
 
 namespace Autosave {
 
 namespace audio_config {
 static constexpr uint8_t voices_number = 8;
 
-static constexpr float init_lfo_frequency = 20.0f;
-static constexpr float init_lfo_amplitude = 0.0f;
+static constexpr float init_lfo_fm_frequency = 20.0f;
+static constexpr float init_lfo_fm_amplitude = 0.0f;
 
 static constexpr float init_frequency = 440.0f; // A4
-static constexpr short init_waveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
 static constexpr float init_amplitude = 0.0f;
+static constexpr uint8_t init_waveform = WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE;
+static const int16_t *const init_custom_waveform = AKWF_OVERTONE[42];
 
 static constexpr float osc_mix_gain = 0.25f;
 static constexpr float master_gain = 0.48f;
@@ -93,7 +95,7 @@ public:
   static float computeFrequencyFromCV(float cv);
 
 private:
-  AudioSynthWaveformSine lfo;
+  AudioSynthWaveformSine lfo_fm;
   AudioSynthWaveformModulated oscillators[audio_config::voices_number];
   AudioEffectEnvelope envelopes[audio_config::voices_number];
   AudioMixer4 mixers[audio_config::voices_number / 4];

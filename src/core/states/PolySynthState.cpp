@@ -8,15 +8,9 @@
 namespace Autosave {
 
 void PolySynthState::begin() {
+  State::begin();
+
   AutosaveLib::Logger::debug("PolySynthState::begin");
-
-  AudioNoInterrupts();
-
-  synth_->audio->noteOffAll();
-  synth_->audio->updateAllOscillatorsAmplitude(0.0f);
-  synth_->audio->updateLFOAmplitude(0.0f);
-
-  AudioInterrupts();
 }
 
 void PolySynthState::noteOn(MidiNote note) {

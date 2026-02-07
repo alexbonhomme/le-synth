@@ -6,14 +6,14 @@
 namespace Autosave {
 
 Audio::Audio()
-    : patchCords{{lfo, 0, oscillators[0], 0},
-                 {lfo, 0, oscillators[1], 0},
-                 {lfo, 0, oscillators[2], 0},
-                 {lfo, 0, oscillators[3], 0},
-                 {lfo, 0, oscillators[4], 0},
-                 {lfo, 0, oscillators[5], 0},
-                 {lfo, 0, oscillators[6], 0},
-                 {lfo, 0, oscillators[7], 0},
+    : patchCords{{lfo_fm, 0, oscillators[0], 0},
+                 {lfo_fm, 0, oscillators[1], 0},
+                 {lfo_fm, 0, oscillators[2], 0},
+                 {lfo_fm, 0, oscillators[3], 0},
+                 {lfo_fm, 0, oscillators[4], 0},
+                 {lfo_fm, 0, oscillators[5], 0},
+                 {lfo_fm, 0, oscillators[6], 0},
+                 {lfo_fm, 0, oscillators[7], 0},
                  {oscillators[0], 0, envelopes[0], 0},
                  {oscillators[1], 0, envelopes[1], 0},
                  {oscillators[2], 0, envelopes[2], 0},
@@ -45,13 +45,15 @@ void Audio::begin() {
   AudioMemory(20);
 
   // Configure LFO
-  lfo.frequency(audio_config::init_lfo_frequency);
-  lfo.amplitude(audio_config::init_lfo_amplitude);
+  lfo_fm.frequency(audio_config::init_lfo_fm_frequency);
+  lfo_fm.amplitude(audio_config::init_lfo_fm_amplitude);
 
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(audio_config::init_waveform);
     oscillators[i].frequency(audio_config::init_frequency);
     oscillators[i].amplitude(audio_config::init_amplitude);
+    oscillators[i].arbitraryWaveform(audio_config::init_custom_waveform,
+                                     172.0f);
 
     envelopes[i].attack(attack_time);
     envelopes[i].hold(0);
@@ -105,9 +107,9 @@ void Audio::noteOffAll() {
   filter_envelope.noteOff();
 }
 
-void Audio::updateLFOFrequency(float frequency) { lfo.frequency(frequency); }
+void Audio::updateLFOFrequency(float frequency) { lfo_fm.frequency(frequency); }
 
-void Audio::updateLFOAmplitude(float amplitude) { lfo.amplitude(amplitude); }
+void Audio::updateLFOAmplitude(float amplitude) { lfo_fm.amplitude(amplitude); }
 
 void Audio::updateOscillatorFrequency(uint8_t index, float frequency) {
   oscillators[index].frequency(frequency);
@@ -221,10 +223,10 @@ float Audio::computeGainFromWaveform(uint8_t waveform) {
   float gain = audio_config::osc_mix_gain;
 
   if (waveform == WAVEFORM_BANDLIMIT_SQUARE) {
-    return gain * 0.8f;
+    return gain * 0.85f;
   }
   if (waveform == WAVEFORM_BANDLIMIT_SAWTOOTH_REVERSE) {
-    return gain * 0.85f;
+    return gain * 0.95f;
   }
 
   return gain; // No gain correction
