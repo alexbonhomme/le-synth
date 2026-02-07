@@ -37,10 +37,26 @@ class WaveformEditor extends HTMLElement {
           Please select a waveform you want to use in the custom mode. <br/>Those come from the <a href="https://www.adventurekid.se/akrt/waveforms/" target="_blank" rel="noopener noreferrer">Adventure Kid Wave Forms (AKWF)</a> library by Kristoffer Ekstrand.
         </p>
         <div class="flex flex-col gap-4">
-          <waveform-selector
-            id="waveformSelector"
-            class="flex flex-wrap gap-4"
-          ></waveform-selector>
+          <div class="flex flex-wrap items-end gap-4">
+            <waveform-selector
+              id="waveformSelector"
+              class="flex flex-wrap gap-4"
+            ></waveform-selector>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                data-role="prev-waveform"
+                class="py-1.5 px-3 text-sm rounded-lg border border-surface-border bg-[#0f0f12] text-[#e8e6e3] hover:border-accent hover:bg-accent/10 focus:outline-none focus:border-accent transition-colors"
+                title="Previous waveform"
+              >← Prev</button>
+              <button
+                type="button"
+                data-role="next-waveform"
+                class="py-1.5 px-3 text-sm rounded-lg border border-surface-border bg-[#0f0f12] text-[#e8e6e3] hover:border-accent hover:bg-accent/10 focus:outline-none focus:border-accent transition-colors"
+                title="Next waveform"
+              >Next →</button>
+            </div>
+          </div>
           <div class="flex flex-col gap-1">
             <span class="text-[0.7rem] uppercase tracking-wider text-gray-500">Preview</span>
             <canvas
@@ -61,6 +77,12 @@ class WaveformEditor extends HTMLElement {
   }
 
   bindEvents() {
+    this.querySelector('[data-role="prev-waveform"]')?.addEventListener('click', () => {
+      this.waveformSelectorEl?.selectPrevious();
+    });
+    this.querySelector('[data-role="next-waveform"]')?.addEventListener('click', () => {
+      this.waveformSelectorEl?.selectNext();
+    });
     if (!this.waveformSelectorEl) return;
     this.waveformSelectorEl.addEventListener('waveform-change', (event) => {
       this.updatePreviewFromSelector();

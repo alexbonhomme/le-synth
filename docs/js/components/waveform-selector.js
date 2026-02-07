@@ -134,6 +134,37 @@ class WaveformSelector extends HTMLElement {
       index: parseInt(indexSelect.value, 10),
     };
   }
+
+  /** Switch to the next waveform (wrap to next bank, then to bank 0). */
+  selectNext() {
+    const { bank, index } = this.getValue();
+    const bankInfo = CUSTOM_WAVEFORM_BANKS[bank];
+    const count = bankInfo ? bankInfo.count : 0;
+    let newBank = bank;
+    let newIndex = index + 1;
+    if (newIndex >= count) {
+      newIndex = 0;
+      newBank = bank + 1;
+      if (newBank > 2) newBank = 0;
+    }
+    this.setFromData({ bank: newBank, index: newIndex });
+    this.emitChange();
+  }
+
+  /** Switch to the previous waveform (wrap to previous bank, then to bank 2). */
+  selectPrevious() {
+    const { bank, index } = this.getValue();
+    let newBank = bank;
+    let newIndex = index - 1;
+    if (newIndex < 0) {
+      newBank = bank - 1;
+      if (newBank < 0) newBank = 2;
+      const bankInfo = CUSTOM_WAVEFORM_BANKS[newBank];
+      newIndex = (bankInfo ? bankInfo.count : 1) - 1;
+    }
+    this.setFromData({ bank: newBank, index: newIndex });
+    this.emitChange();
+  }
 }
 
 customElements.define('waveform-selector', WaveformSelector);
