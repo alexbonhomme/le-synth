@@ -17,6 +17,9 @@ protected:
 
   void loadWaveform(WaveformType waveform_type);
 
+  static void customWaveformSysexGetter(uint8_t *bank, uint8_t *index);
+  static void customWaveformSysexSetter(uint8_t bank, uint8_t index);
+
 public:
   virtual ~State() {}
 

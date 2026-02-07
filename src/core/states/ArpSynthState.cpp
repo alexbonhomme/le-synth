@@ -1,7 +1,7 @@
 #include "ArpSynthState.h"
 
-#include "core/EepromStorage.h"
 #include "core/Hardware.h"
+#include "core/Midi.h"
 #include "core/Synth.h"
 #include "lib/Logger.h"
 
@@ -139,40 +139,6 @@ void ArpSynthState::noteOff(MidiNote note) {
 
       break;
     }
-  }
-}
-
-static void arpStepsGetter(uint8_t mode, uint8_t *len, uint8_t *data) {
-  if (mode >= 3 || len == nullptr || data == nullptr) {
-    return;
-  }
-  const auto &vec = ArpSynthState::arp_mode_steps[mode];
-  *len = static_cast<uint8_t>(vec.size() > EepromStorage::kMaxArpSteps
-                                  ? EepromStorage::kMaxArpSteps
-                                  : vec.size());
-  for (uint8_t i = 0; i < *len; i++) {
-    data[i] = vec[i];
-  }
-}
-
-static void arpStepsSetter(uint8_t mode, uint8_t len, const uint8_t *data) {
-  if (mode >= 3 || data == nullptr || len > EepromStorage::kMaxArpSteps) {
-    return;
-  }
-
-  auto &vec = ArpSynthState::arp_mode_steps[mode];
-  vec.clear();
-  vec.reserve(len);
-  for (uint8_t i = 0; i < len; i++) {
-    vec.push_back(data[i]);
-  }
-
-  EepromStorage::saveArpModeSteps(ArpSynthState::arp_mode_steps);
-}
-
-void ArpSynthState::registerArpStepsWithMidi(Midi *midi) {
-  if (midi != nullptr) {
-    midi->setArpStepsSysexHandlers(arpStepsGetter, arpStepsSetter);
   }
 }
 } // namespace Autosave

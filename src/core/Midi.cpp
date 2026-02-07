@@ -122,6 +122,34 @@ void Midi::handleSysEx(uint8_t *array, unsigned size) {
     return;
   }
 
+  // Get custom waveform: F0 7D 00 07 F7
+  if (size == midi_config::SYSEX_CUSTOM_WAVEFORM_GET_SIZE &&
+      array[0] == 0xF0 && array[1] == 0x7D && array[2] == 0x00 &&
+      array[3] == midi_config::SYSEX_CUSTOM_WAVEFORM_GET_CMD &&
+      array[4] == 0xF7 && instance_->custom_waveform_getter_ != nullptr) {
+    uint8_t bank = 0;
+    uint8_t index = 0;
+    instance_->custom_waveform_getter_(&bank, &index);
+    const uint8_t reply[] = {0xF0, 0x7D, 0x00,
+                             midi_config::SYSEX_CUSTOM_WAVEFORM_REPLY_CMD,
+                             bank, index, 0xF7};
+    instance_->sendSysEx(reply, sizeof(reply));
+    return;
+  }
+
+  // Set custom waveform: F0 7D 00 09 bank index F7
+  if (size == midi_config::SYSEX_CUSTOM_WAVEFORM_SET_SIZE &&
+      array[0] == 0xF0 && array[1] == 0x7D && array[2] == 0x00 &&
+      array[3] == midi_config::SYSEX_CUSTOM_WAVEFORM_SET_CMD &&
+      array[6] == 0xF7 && instance_->custom_waveform_setter_ != nullptr) {
+    uint8_t bank = array[4];
+    uint8_t index = array[5];
+    if (bank <= 2) {
+      instance_->custom_waveform_setter_(bank, index);
+    }
+    return;
+  }
+
   uint8_t nn;
   if (size == midi_config::SYSEX_SET_CHANNEL_SIZE) {
     // Payload only: 7D 00 01 nn
@@ -179,6 +207,12 @@ void Midi::setArpStepsSysexHandlers(ArpStepsGetter getter,
                                     ArpStepsSetter setter) {
   arp_steps_getter_ = getter;
   arp_steps_setter_ = setter;
+}
+
+void Midi::setCustomWaveformSysexHandlers(CustomWaveformGetter getter,
+                                          CustomWaveformSetter setter) {
+  custom_waveform_getter_ = getter;
+  custom_waveform_setter_ = setter;
 }
 
 void Midi::read() {

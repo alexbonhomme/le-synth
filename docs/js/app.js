@@ -2,17 +2,21 @@ import {
   attachInputListeners,
   buildGetArpStepsSysex,
   buildGetChannelSysex,
+  buildGetCustomWaveformSysex,
   buildSetArpStepsSysex,
+  buildSetCustomWaveformSysex,
   buildSysex,
   findOutputByName,
   parseArpStepsFromSysex,
   parseChannelFromSysex,
+  parseCustomWaveformFromSysex,
   requestMIDIAccess,
 } from './midi.js';
 import { MIDI_DEVICE_NAME } from './constants.js';
 import './components/midi-status.js';
 import './components/channel-editor.js';
 import './components/arp-editor.js';
+import './components/waveform-editor.js';
 
 class IcarusConfigApp extends HTMLElement {
   constructor() {
@@ -23,6 +27,7 @@ class IcarusConfigApp extends HTMLElement {
     this.statusEl = null;
     this.channelEditor = null;
     this.arpEditor = null;
+    this.waveformEditor = null;
 
     this.handleMidiMessage = this.handleMidiMessage.bind(this);
     this.handleStateChange = this.handleStateChange.bind(this);
@@ -46,6 +51,8 @@ class IcarusConfigApp extends HTMLElement {
       <channel-editor id="channelEditor" class="block mb-6"></channel-editor>
 
       <arp-editor id="arpEditor"></arp-editor>
+
+      <waveform-editor id="waveformEditor"></waveform-editor>
     `;
   }
 
@@ -53,6 +60,7 @@ class IcarusConfigApp extends HTMLElement {
     this.statusEl = this.querySelector('#status');
     this.channelEditor = this.querySelector('#channelEditor');
     this.arpEditor = this.querySelector('#arpEditor');
+    this.waveformEditor = this.querySelector('#waveformEditor');
   }
 
   buildUi() {
@@ -65,6 +73,12 @@ class IcarusConfigApp extends HTMLElement {
       const { mode, steps } = event.detail ?? {};
       if (mode != null && Array.isArray(steps)) {
         this.sendArpSteps(mode, steps);
+      }
+    });
+    this.waveformEditor?.addEventListener('waveform-change', (event) => {
+      const { bank, index } = event.detail ?? {};
+      if (typeof bank === 'number' && typeof index === 'number') {
+        this.sendCustomWaveform(bank, index);
       }
     });
   }
@@ -92,7 +106,7 @@ class IcarusConfigApp extends HTMLElement {
   }
 
   handleMidiMessage(event) {
-    if (!this.channelEditor || !this.statusEl || !this.arpEditor) return;
+    if (!this.channelEditor || !this.statusEl || !this.arpEditor || !this.waveformEditor) return;
 
     const channel = parseChannelFromSysex(event.data);
     if (channel != null) {
@@ -106,6 +120,13 @@ class IcarusConfigApp extends HTMLElement {
     if (arpSteps != null && typeof this.arpEditor.setFromData === 'function') {
       this.arpEditor.setFromData(arpSteps);
       this.statusEl.setStatus('Arp steps loaded from device.', 'connected');
+      return;
+    }
+
+    const customWaveform = parseCustomWaveformFromSysex(event.data);
+    if (customWaveform != null && typeof this.waveformEditor?.setFromData === 'function') {
+      this.waveformEditor.setFromData(customWaveform);
+      this.statusEl.setStatus('Custom waveform loaded from device.', 'connected');
     }
   }
 
@@ -138,6 +159,15 @@ class IcarusConfigApp extends HTMLElement {
     }
   }
 
+  requestCustomWaveform() {
+    if (!this.icarusOutput) return;
+    try {
+      this.icarusOutput.port.send(buildGetCustomWaveformSysex());
+    } catch {
+      // ignore
+    }
+  }
+
   sendArpSteps(mode, steps) {
     if (!this.icarusOutput || !this.statusEl) return;
     const data = buildSetArpStepsSysex(mode, steps);
@@ -148,6 +178,19 @@ class IcarusConfigApp extends HTMLElement {
       this.statusEl.setStatus('Arp steps mode ' + mode + ' sent to device.', 'connected');
     } catch (err) {
       this.statusEl.setStatus('Send arp steps failed: ' + err.message, 'error');
+    }
+  }
+
+  sendCustomWaveform(bank, index) {
+    if (!this.icarusOutput || !this.statusEl) return;
+    const data = buildSetCustomWaveformSysex(bank, index);
+    if (!data) return;
+
+    try {
+      this.icarusOutput.port.send(data);
+      this.statusEl.setStatus('Custom waveform sent to device.', 'connected');
+    } catch (err) {
+      this.statusEl.setStatus('Send custom waveform failed: ' + err.message, 'error');
     }
   }
 
@@ -167,6 +210,7 @@ class IcarusConfigApp extends HTMLElement {
     }
     this.requestCurrentChannel();
     this.requestArpSteps();
+    this.requestCustomWaveform();
   }
 
   initMidi() {
@@ -196,6 +240,7 @@ class IcarusConfigApp extends HTMLElement {
         }
         this.requestCurrentChannel();
         this.requestArpSteps();
+        this.requestCustomWaveform();
       })
       .catch((err) => {
         const msg = err.message.includes('not supported') ? err.message : 'Cannot connect: ' + err.message;
@@ -208,6 +253,7 @@ class IcarusConfigApp extends HTMLElement {
     const action = isVisible ? 'remove' : 'add';
     this.channelEditor?.classList[action]('hidden');
     this.arpEditor?.classList[action]('hidden');
+    this.waveformEditor?.classList[action]('hidden');
   }
 }
 

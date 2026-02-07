@@ -54,6 +54,7 @@ void State::loadWaveform(WaveformType waveform_type) {
     break;
   case WaveformType::SYNTH_WAVEFORM_CUSTOM:
     synth_->audio->updateAllOscillatorsWaveform(WAVEFORM_ARBITRARY);
+    synth_->audio->applyCustomWaveform();
     break;
   default:
     Logger::error("Unknown waveform type: " + String(waveform_type));

@@ -8,6 +8,9 @@ import {
   SYSEX_ARP_SET_CMD,
   SYSEX_ARP_MAX_STEPS,
   SYSEX_ARP_NUM_MODES,
+  SYSEX_CUSTOM_WAVEFORM_GET_REQUEST,
+  SYSEX_CUSTOM_WAVEFORM_REPLY_CMD,
+  SYSEX_CUSTOM_WAVEFORM_SET_CMD,
 } from './constants.js';
 
 // ——— Web MIDI API ———
@@ -106,4 +109,36 @@ export function buildSetArpStepsSysex(mode, steps) {
   }
   arr[6 + len] = 0xf7;
   return arr;
+}
+
+export function buildGetCustomWaveformSysex() {
+  return SYSEX_CUSTOM_WAVEFORM_GET_REQUEST;
+}
+
+/**
+ * Parse custom waveform reply: F0 7D 00 08 bank index F7.
+ * Returns { bank, index } or null.
+ */
+export function parseCustomWaveformFromSysex(data) {
+  if (!data || data.length !== 7) return null;
+  if (data[0] !== 0xf0 || data[1] !== 0x7d || data[2] !== 0x00 ||
+      data[3] !== SYSEX_CUSTOM_WAVEFORM_REPLY_CMD || data[6] !== 0xf7) return null;
+  const bank = data[4];
+  const index = data[5];
+  if (bank > 2) return null;
+  return { bank, index };
+}
+
+/**
+ * Build set custom waveform Sysex: F0 7D 00 09 bank index F7.
+ * @param {number} bank - 0=FM, 1=Granular, 2=Overtone
+ * @param {number} index - 0-based index within bank
+ */
+export function buildSetCustomWaveformSysex(bank, index) {
+  if (bank < 0 || bank > 2) return null;
+  if (index < 0 || index > 0xff) return null;
+  return new Uint8Array([
+    0xf0, 0x7d, 0x00, SYSEX_CUSTOM_WAVEFORM_SET_CMD,
+    bank & 0xff, index & 0xff, 0xf7,
+  ]);
 }

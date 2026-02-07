@@ -3,8 +3,6 @@
 
 #include "MonoSynthState.h"
 
-#include "core/Midi.h"
-
 #include <array>
 #include <vector>
 
@@ -39,7 +37,7 @@ private:
 public:
   ~ArpSynthState() override;
 
-  /** Runtime arp step sequences (persisted via EepromStorage). */
+  /** Runtime arp step sequences (loaded/saved by Synth via EEPROM and Sysex). */
   static std::array<std::vector<uint8_t>, 3> arp_mode_steps;
 
   void begin() override;
@@ -51,10 +49,6 @@ public:
   static void onMidiClock();
   static void onMidiStart();
   static void onMidiStop();
-
-  /** Register arp steps get/set with Midi for SysEx; call from Synth::begin().
-   */
-  static void registerArpStepsWithMidi(Midi *midi);
 };
 
 } // namespace Autosave

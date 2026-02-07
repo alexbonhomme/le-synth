@@ -30,8 +30,14 @@ void Synth::begin() {
   audio->begin();
   midi->begin();
 
+  // register global Sysex handlers once
+  midi->setArpStepsSysexHandlers(arpStepsSysexGetter, arpStepsSysexSetter);
+  midi->setCustomWaveformSysexHandlers(customWaveformSysexGetter,
+                                       customWaveformSysexSetter);
+
+  // Load persisted data and
   EepromStorage::loadArpModeSteps(ArpSynthState::arp_mode_steps);
-  ArpSynthState::registerArpStepsWithMidi(midi);
+
   state_->begin();
 
   // Load the initial mode from the hardware
@@ -49,9 +55,9 @@ void Synth::process() {
 
   state_->process();
 
-  #ifdef DEBUG
-    // debugAudioUsage();
-  #endif
+#ifdef DEBUG
+  // debugAudioUsage();
+#endif
 }
 
 void Synth::updateMode() {
@@ -129,6 +135,49 @@ void Synth::midiNoteOff(uint8_t channel, uint8_t note, uint8_t velocity) {
   }
 
   instance_->state_->noteOff({fixMidiNote(note), velocity});
+}
+
+void Synth::customWaveformSysexGetter(uint8_t *bank, uint8_t *index) {
+  if (instance_ == nullptr || instance_->audio == nullptr) {
+    return;
+  }
+  instance_->audio->getCustomWaveform(bank, index);
+}
+
+void Synth::customWaveformSysexSetter(uint8_t bank, uint8_t index) {
+  if (instance_ == nullptr || instance_->audio == nullptr) {
+    return;
+  }
+  instance_->audio->setCustomWaveform(bank, index);
+  instance_->audio->applyCustomWaveform();
+  EepromStorage::saveCustomWaveform(bank, index);
+}
+
+void Synth::arpStepsSysexGetter(uint8_t mode, uint8_t *len, uint8_t *data) {
+  if (mode >= 3 || len == nullptr || data == nullptr) {
+    return;
+  }
+  const auto &vec = ArpSynthState::arp_mode_steps[mode];
+  *len = static_cast<uint8_t>(vec.size() > EepromStorage::kMaxArpSteps
+                                  ? EepromStorage::kMaxArpSteps
+                                  : vec.size());
+  for (uint8_t i = 0; i < *len; i++) {
+    data[i] = vec[i];
+  }
+}
+
+void Synth::arpStepsSysexSetter(uint8_t mode, uint8_t len,
+                                const uint8_t *data) {
+  if (mode >= 3 || data == nullptr || len > EepromStorage::kMaxArpSteps) {
+    return;
+  }
+  auto &vec = ArpSynthState::arp_mode_steps[mode];
+  vec.clear();
+  vec.reserve(len);
+  for (uint8_t i = 0; i < len; i++) {
+    vec.push_back(data[i]);
+  }
+  EepromStorage::saveArpModeSteps(ArpSynthState::arp_mode_steps);
 }
 
 } // namespace Autosave

@@ -27,6 +27,14 @@ public:
   static constexpr uint8_t kArpAddrMagic = 2;
   static constexpr uint8_t kArpAddrData = 3;
 
+  /** EEPROM layout for custom waveform (bank + index). */
+  static constexpr uint8_t kCustomWaveformMagic = 0xA7;
+  static constexpr uint8_t kCustomWaveformAddrMagic = 30;
+  static constexpr uint8_t kCustomWaveformAddrBank = 31;
+  static constexpr uint8_t kCustomWaveformAddrIndex = 32;
+  static constexpr uint8_t kCustomWaveformBankDefault = 2;  // Overtone
+  static constexpr uint8_t kCustomWaveformIndexDefault = 42;
+
   /**
    * Load MIDI channel from EEPROM (1–16).
    * Returns kMidiChannelDefault if magic invalid or value out of range.
@@ -48,6 +56,17 @@ public:
    * Save arp mode steps to EEPROM.
    */
   static void saveArpModeSteps(const ArpModeSteps &data);
+
+  /**
+   * Load custom waveform bank (0=FM, 1=Granular, 2=Overtone) and index from EEPROM.
+   * If magic is invalid, out_bank and out_index are set to defaults.
+   */
+  static void loadCustomWaveform(uint8_t &out_bank, uint8_t &out_index);
+
+  /**
+   * Save custom waveform bank and index to EEPROM.
+   */
+  static void saveCustomWaveform(uint8_t bank, uint8_t index);
 };
 
 } // namespace Autosave

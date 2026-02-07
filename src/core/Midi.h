@@ -24,6 +24,13 @@ static constexpr uint8_t SYSEX_ARP_SET_CMD = 0x06;
 static constexpr unsigned SYSEX_ARP_GET_SIZE = 5;
 static constexpr unsigned SYSEX_ARP_REPLY_SIZE = 4 + 3 * (1 + 8) + 1; // 32
 static constexpr unsigned SYSEX_ARP_MAX_STEPS = 8;
+// SysEx custom waveform: get F0 7D 00 07 F7; reply F0 7D 00 08 bank index F7; set F0 7D 00 09 bank index F7
+static constexpr uint8_t SYSEX_CUSTOM_WAVEFORM_GET_CMD = 0x07;
+static constexpr uint8_t SYSEX_CUSTOM_WAVEFORM_REPLY_CMD = 0x08;
+static constexpr uint8_t SYSEX_CUSTOM_WAVEFORM_SET_CMD = 0x09;
+static constexpr unsigned SYSEX_CUSTOM_WAVEFORM_GET_SIZE = 5;
+static constexpr unsigned SYSEX_CUSTOM_WAVEFORM_REPLY_SIZE = 7;
+static constexpr unsigned SYSEX_CUSTOM_WAVEFORM_SET_SIZE = 7;
 } // namespace midi_config
 
 struct MidiNote {
@@ -55,11 +62,19 @@ public:
                                   const uint8_t *data);
   void setArpStepsSysexHandlers(ArpStepsGetter getter, ArpStepsSetter setter);
 
+  /** Callbacks for custom waveform SysEx get/set; set from Synth. */
+  using CustomWaveformGetter = void (*)(uint8_t *bank, uint8_t *index);
+  using CustomWaveformSetter = void (*)(uint8_t bank, uint8_t index);
+  void setCustomWaveformSysexHandlers(CustomWaveformGetter getter,
+                                      CustomWaveformSetter setter);
+
 private:
   static Midi *instance_;
   uint8_t channel_ = 1;
   ArpStepsGetter arp_steps_getter_ = nullptr;
   ArpStepsSetter arp_steps_setter_ = nullptr;
+  CustomWaveformGetter custom_waveform_getter_ = nullptr;
+  CustomWaveformSetter custom_waveform_setter_ = nullptr;
 
   /** Static SysEx handler to register with the MIDI library. */
   static void handleSysEx(uint8_t *array, unsigned size);

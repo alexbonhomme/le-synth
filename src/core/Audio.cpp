@@ -1,9 +1,16 @@
 #include <synth_waveform.h>
 
 #include "Audio.h"
+#include "core/EepromStorage.h"
 #include "lib/Logger.h"
 
 namespace Autosave {
+
+enum CustomWaveformBank {
+  CUSTOM_WAVEFORM_BANK_FM = 0,
+  CUSTOM_WAVEFORM_BANK_GRANULAR = 1,
+  CUSTOM_WAVEFORM_BANK_OVERTONE = 2,
+};
 
 Audio::Audio()
     : patchCords{{lfo_fm, 0, oscillators[0], 0},
@@ -48,12 +55,21 @@ void Audio::begin() {
   lfo_fm.frequency(audio_config::init_lfo_fm_frequency);
   lfo_fm.amplitude(audio_config::init_lfo_fm_amplitude);
 
+  EepromStorage::loadCustomWaveform(custom_waveform_bank_,
+                                    custom_waveform_index_);
+  const int16_t *custom_ptr =
+      getCustomWaveformPointer(custom_waveform_bank_, custom_waveform_index_);
+  if (custom_ptr == nullptr) {
+    custom_waveform_bank_ = 2;
+    custom_waveform_index_ = 42;
+    custom_ptr = AKWF_OVERTONE[42];
+  }
+
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(audio_config::init_waveform);
     oscillators[i].frequency(audio_config::init_frequency);
     oscillators[i].amplitude(audio_config::init_amplitude);
-    oscillators[i].arbitraryWaveform(audio_config::init_custom_waveform,
-                                     172.0f);
+    oscillators[i].arbitraryWaveform(custom_ptr, 172.0f);
 
     envelopes[i].attack(attack_time);
     envelopes[i].hold(0);
@@ -131,19 +147,69 @@ void Audio::updateAllOscillatorsAmplitude(float amplitude) {
   }
 }
 
-void Audio::updateOscillatorWaveform(uint8_t index, uint8_t waveform) {
-  float gain = computeGainFromWaveform(waveform);
-
-  oscillators[index].begin(waveform);
-  mixers[index / 4].gain(index % 4, gain);
-}
-
 void Audio::updateAllOscillatorsWaveform(uint8_t waveform) {
   float gain = computeGainFromWaveform(waveform);
 
   for (uint8_t i = 0; i < audio_config::voices_number; i++) {
     oscillators[i].begin(waveform);
     mixers[i / 4].gain(i % 4, gain);
+  }
+}
+
+const int16_t *Audio::getCustomWaveformPointer(uint8_t bank,
+                                               uint8_t index) const {
+  switch (bank) {
+  case CUSTOM_WAVEFORM_BANK_FM:
+    return (index < AKWF_FM_COUNT) ? AKWF_FM[index] : nullptr;
+  case CUSTOM_WAVEFORM_BANK_GRANULAR:
+    return (index < AKWF_GRANULAR_COUNT) ? AKWF_GRANULAR[index] : nullptr;
+  case CUSTOM_WAVEFORM_BANK_OVERTONE:
+    return (index < AKWF_OVERTONE_COUNT) ? AKWF_OVERTONE[index] : nullptr;
+  default:
+    return nullptr;
+  }
+}
+
+void Audio::setCustomWaveform(uint8_t bank, uint8_t index) {
+  if (bank > CUSTOM_WAVEFORM_BANK_OVERTONE) {
+    return;
+  }
+  size_t max_index = 0;
+  switch (bank) {
+  case CUSTOM_WAVEFORM_BANK_FM:
+    max_index = AKWF_FM_COUNT;
+    break;
+  case CUSTOM_WAVEFORM_BANK_GRANULAR:
+    max_index = AKWF_GRANULAR_COUNT;
+    break;
+  case CUSTOM_WAVEFORM_BANK_OVERTONE:
+    max_index = AKWF_OVERTONE_COUNT;
+    break;
+  }
+  if (index >= max_index) {
+    return;
+  }
+  custom_waveform_bank_ = bank;
+  custom_waveform_index_ = index;
+}
+
+void Audio::getCustomWaveform(uint8_t *out_bank, uint8_t *out_index) const {
+  if (out_bank != nullptr) {
+    *out_bank = custom_waveform_bank_;
+  }
+  if (out_index != nullptr) {
+    *out_index = custom_waveform_index_;
+  }
+}
+
+void Audio::applyCustomWaveform() {
+  const int16_t *ptr =
+      getCustomWaveformPointer(custom_waveform_bank_, custom_waveform_index_);
+  if (ptr == nullptr) {
+    return;
+  }
+  for (uint8_t i = 0; i < audio_config::voices_number; i++) {
+    oscillators[i].arbitraryWaveform(ptr, 172.0f);
   }
 }
 

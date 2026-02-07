@@ -29,6 +29,12 @@ public:
 
   static void midiNoteOn(uint8_t channel, uint8_t note, uint8_t velocity);
   static void midiNoteOff(uint8_t channel, uint8_t note, uint8_t velocity);
+
+  static void customWaveformSysexGetter(uint8_t *bank, uint8_t *index);
+  static void customWaveformSysexSetter(uint8_t bank, uint8_t index);
+
+  static void arpStepsSysexGetter(uint8_t mode, uint8_t *len, uint8_t *data);
+  static void arpStepsSysexSetter(uint8_t mode, uint8_t len, const uint8_t *data);
 };
 
 } // namespace Autosave

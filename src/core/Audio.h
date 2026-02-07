@@ -73,10 +73,17 @@ public:
 
   void updateOscillatorFrequency(uint8_t index, float frequency);
   void updateAllOscillatorsFrequency(float frequency);
+
   void updateOscillatorAmplitude(uint8_t index, float amplitude);
   void updateAllOscillatorsAmplitude(float amplitude);
-  void updateOscillatorWaveform(uint8_t index, uint8_t waveform);
+
   void updateAllOscillatorsWaveform(uint8_t waveform);
+
+  /** Custom (arbitrary) waveform: bank 0=FM, 1=Granular, 2=Overtone; index within bank. */
+  void setCustomWaveform(uint8_t bank, uint8_t index);
+  void getCustomWaveform(uint8_t *out_bank, uint8_t *out_index) const;
+  /** Apply current custom waveform table to all oscillators (when in arbitrary mode). */
+  void applyCustomWaveform();
 
   void updateAttack(float attack);
   void updateRelease(float release);
@@ -110,6 +117,10 @@ private:
   float attack_time = 1.0f;
   float release_time = 15.0f;
 
+  uint8_t custom_waveform_bank_ = 2;
+  uint8_t custom_waveform_index_ = 42;
+
+  const int16_t *getCustomWaveformPointer(uint8_t bank, uint8_t index) const;
   float computeGainFromWaveform(uint8_t waveform);
 };
 
